@@ -67,26 +67,36 @@ int CEthread_join(CEthread_t *thread, void **retval) {
 
 int CEthread_end(CEthread_t *thread) {
     if (thread->status != 1) {
+        return -1;  // El hilo no está activo
+    }
+
+    // Enviar señal de cancelación (SIGTERM para este caso)
+    if (syscall(SYS_tgkill, getpid(), thread->id, SIGTERM) != 0) {
+        perror("tgkill failed");
         return -1;
     }
 
-    // Enviar señal para terminar el hilo
-    if (kill(thread->id, SIGTERM) != 0) {
-        perror("kill failed");
-        return -1;
+    // Esperar a que el hilo termine usando una técnica similar a pthread_join
+    while (1) {
+        int result = syscall(SYS_tgkill, getpid(), thread->id, 0);
+        if (result == -1) {
+            if (errno == ESRCH) {
+                // El hilo ha terminado
+                break;
+            } else {
+                perror("tgkill failed");
+                return -1;
+            }
+        }
+        usleep(1000);  // Esperar un milisegundo antes de verificar nuevamente
     }
 
-    // Esperar a que el hilo termine
-    int status;
-    if (waitpid(thread->id, &status, 0) == -1) {
-        perror("waitpid failed");
-        return -1;
-    }
-
+    // Limpiar recursos asociados
     free(thread->stack);
     thread->status = 0;
     return 0;
 }
+
 
 
 // Inicializar el mutex
@@ -124,3 +134,4 @@ int CEmutex_destroy(CEmutex_t *mutex) {
     }
     return 0;
 }
+
