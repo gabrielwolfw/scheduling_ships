@@ -29,6 +29,7 @@ typedef struct {
     sem_t semaphore;
 } CEmutex_t;
 
+
 // Funciones públicas para CEthread
 int CEthread_create(CEthread_t *thread, void *(*start_routine)(void *), void *arg);
 int CEthread_join(CEthread_t *thread, void **retval);
