@@ -1,4 +1,4 @@
-// COMANDOS SERIALES
+// ESTE SCRIPT MUESTRA COMO ENVIAR UN COMANDO UNICO E INDIVIDUAL SERIALMENTE
 
 // Comando MOTOR <dirección>
 // Cambia la dirección de giro del motor, lo que a su vez cambia el sentido del flujo del canal.
@@ -63,7 +63,7 @@
 #include <termios.h>    // Para struct termios
 #include <errno.h>
 
-#define SERIAL_PORT "/dev/cu.usbmodem14401"  // Cambia esto por el puerto serie correcto
+#define SERIAL_PORT "/dev/cu.usbmodem14401"  // esto se cambia por el puerto serie donde se conecte el arduino
 
 int main() {
     int serial_port = open(SERIAL_PORT, O_RDWR);
@@ -147,18 +147,18 @@ int main() {
             printf("Error al leer del puerto serie: %s\n", strerror(errno));
             return 1;
         } else if (num_bytes == 0) {
-            // No hay datos disponibles, podemos esperar un poco
+            // No hay datos disponibles, delay para esperar
             usleep(100000); // 100 ms
         } else {
             printf("Respuesta recibida (%d bytes): %s\n", num_bytes, read_buf);
             memset(&read_buf, '\0', sizeof(read_buf)); // Limpiar el buffer
 
-            // Puedes agregar una condición para salir del bucle si es necesario
+            // Aca se puede agregar una condición para salir del bucle si es necesario
             // break;
         }
 
         // Para evitar un bucle infinito en este ejemplo, salimos después de leer la respuesta
-        // Puedes ajustar esto según tus necesidades
+        
         break;
     }
 

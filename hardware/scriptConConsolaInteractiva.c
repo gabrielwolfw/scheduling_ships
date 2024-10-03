@@ -1,3 +1,4 @@
+//// ESTE SCRIPT MUESTRA COMO INTERACTUAR CON VARIOS COMANDOS SERIALMENTE MEDIANTE UNA CONSOLA
 // COMANDOS SERIALES
 
 // Comando MOTOR <dirección>
@@ -63,7 +64,7 @@
 #include <termios.h>    // Para struct termios
 #include <errno.h>
 
-#define SERIAL_PORT "/dev/cu.usbmodem14401"  // Cambia esto por el puerto serie correcto
+#define SERIAL_PORT "/dev/cu.usbmodem14401"  //  esto se cambia por el puerto serie donde se conecte el arduino
 
 int main() {
     int serial_port = open(SERIAL_PORT, O_RDWR);
