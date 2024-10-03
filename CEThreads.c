@@ -2,6 +2,13 @@
 #define STACK_SIZE (1024 * 64)
 
 
+volatile sig_atomic_t keep_running = 1; // Variable global para controlar la ejecución
+
+void handle_signal(int signum) {
+    if (signum == SIGTERM) {
+        keep_running = 0; // Indicar que el hilo debe terminar
+    }
+}
 static int thread_start_wrapper(void *arg) {
     CEthread_t *thread = (CEthread_t *)arg;
     thread->retval = thread->start_routine(thread->arg);
@@ -17,6 +24,7 @@ int CEthread_create(CEthread_t *thread, void *(*start_routine)(void *), void *ar
         perror("Failed to allocate stack");
         return -1;
     }
+    signal(SIGTERM, handle_signal);
 
     thread->id = clone(thread_start_wrapper, (char *)thread->stack + STACK_SIZE,
                        CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM,
@@ -64,7 +72,6 @@ int CEthread_join(CEthread_t *thread, void **retval) {
 }
 
 
-
 int CEthread_end(CEthread_t *thread) {
     if (thread->status != 1) {
         return -1;  // El hilo no está activo
@@ -76,8 +83,9 @@ int CEthread_end(CEthread_t *thread) {
         return -1;
     }
 
-    // Esperar a que el hilo termine usando una técnica similar a pthread_join
+    // Esperar a que el hilo termine
     while (1) {
+        // Verificar si el hilo sigue activo
         int result = syscall(SYS_tgkill, getpid(), thread->id, 0);
         if (result == -1) {
             if (errno == ESRCH) {
@@ -92,10 +100,15 @@ int CEthread_end(CEthread_t *thread) {
     }
 
     // Limpiar recursos asociados
-    free(thread->stack);
-    thread->status = 0;
+    if (thread->stack) {
+        free(thread->stack);
+        thread->stack = NULL; // Evitar punteros colgantes
+    }
+    thread->status = 0; // Marcar como terminado
+    thread->retval = NULL; // Asegurarse de que el valor de retorno no sea utilizado
     return 0;
 }
+
 
 
 
