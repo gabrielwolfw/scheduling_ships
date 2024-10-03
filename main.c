@@ -2,9 +2,12 @@
 #include <pthread.h>
 #include "CEThreads.h"  
 
+CEmutex_t print_mutex; // Mutex global para la impresión
 void *print_message(void *ptr) {
     char *message = (char *)ptr;
+    CEmutex_lock(&print_mutex);  // Bloquear el mutex antes de imprimir
     printf("%s\n", message);
+    CEmutex_unlock(&print_mutex); // Desbloquear el mutex después de imprimir
     return NULL;
 }
 
@@ -15,8 +18,12 @@ void test_thread_creation_and_join() {
     char *message2 = "Pthread - Hilo 2";
 
     // Crear hilos usando Pthreads
-    pthread_create(&pthread1, NULL, print_message, (void *)message1);
-    pthread_create(&pthread2, NULL, print_message, (void *)message2);
+    if (pthread_create(&pthread1, NULL, print_message, (void *)message1) != 0) {
+        perror("Error creando el Pthread 1");
+    }
+    if (pthread_create(&pthread2, NULL, print_message, (void *)message2) != 0) {
+        perror("Error creando el Pthread 2");
+    }
 
     // Unir hilos Pthreads
     pthread_join(pthread1, NULL);
@@ -28,13 +35,18 @@ void test_thread_creation_and_join() {
     char *message4 = "CEthread - Hilo 2";
 
     // Crear hilos usando CEthreads
-    CEthread_create(&cethread1, print_message, (void *)message3);
-    CEthread_create(&cethread2, print_message, (void *)message4);
+    if (CEthread_create(&cethread1, print_message, (void *)message3) != 0) {
+        perror("Error creando el CEthread 1");
+    }
+    if (CEthread_create(&cethread2, print_message, (void *)message4) != 0) {
+        perror("Error creando el CEthread 2");
+    }
 
     // Unir hilos CEthreads
     CEthread_join(&cethread1, NULL);
     CEthread_join(&cethread2, NULL);
 }
+
 
 void test_thread_mutex() {
     // Test CEmutex
@@ -76,8 +88,94 @@ void test_thread_mutex() {
     printf("\nMutex tests completed.\n");
 }
 
+void *long_running_task_pthread(void *arg) {
+    int *count = (int *)arg;
+    while (*count < 5) {
+        printf("Pthread en ejecución: %d\n", *count);
+        (*count)++;
+        sleep(1);  // Simular trabajo
+    }
+    return NULL;
+}
+
+int test_pthread_end() {
+    pthread_t pthread;
+    int count = 0;
+
+    // Crear el hilo
+    if (pthread_create(&pthread, NULL, long_running_task_pthread, (void *)&count) != 0) {
+        fprintf(stderr, "Error creando el Pthread.\n");
+        return -1;
+    }
+
+    // Dejar el hilo correr hasta que complete su tarea
+    sleep(5); // Allow enough time for the thread to complete
+
+    // Terminar el hilo (usando pthread_cancel para terminarlo)
+    if (pthread_cancel(pthread) != 0) {
+        fprintf(stderr, "Error cancelando el Pthread.\n");
+        return -1;
+    }
+
+    // Esperar a que el hilo termine
+    if (pthread_join(pthread, NULL) != 0) {
+        fprintf(stderr, "Error esperando al Pthread.\n");
+        return -1;
+    }
+
+    printf("El Pthread ha terminado correctamente.\n");
+    return 0;
+}
+
+void *long_running_task(void *arg) {
+    int *count = (int *)arg;
+    while (*count < 5) {
+        printf("Hilo en ejecución (CEthread): %d\n", *count);
+        (*count)++;
+        sleep(1);  // Simular trabajo
+    }
+    return NULL;
+}
+
+int test_thread_end() {
+    CEthread_t cethread;
+    int count = 0;
+
+    // Crear el CEthread
+    if (CEthread_create(&cethread, long_running_task, (void *)&count) != 0) {
+        fprintf(stderr, "Error creando el CEthread.\n");
+        return -1;
+    }
+
+    // Dejar el CEthread correr por un momento
+    sleep(2);
+
+    // Terminar el CEthread
+    if (CEthread_end(&cethread) != 0) {
+        fprintf(stderr, "Error terminando el CEthread.\n");
+        return -1;
+    }
+
+    // Verificar que el CEthread ha terminado
+    if (cethread.status == 0) {
+        printf("El CEthread ha terminado correctamente.\n");
+    } else {
+        printf("El CEthread aún está activo.\n");
+    }
+
+    return 0;
+}
+
 int main() {
+    CEmutex_init(&print_mutex); // Inicializar el mutex
     test_thread_creation_and_join();
     test_thread_mutex();
+    printf("\nPrueba de Pthreads:\n");
+    test_pthread_end();
+
+    printf("\nPrueba de CEthreads:\n");
+    test_thread_end(); // Llamada a la prueba de CEthreads
+
+    CEmutex_destroy(&print_mutex); // Destruir el mutex
     return 0;
 }
