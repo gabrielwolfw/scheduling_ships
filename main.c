@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include "CEThreads.h"  
+#include "Utils/Scheduler.h"
 
 void *print_message(void *ptr) {
     char *message = (char *)ptr;
@@ -48,6 +49,25 @@ void schedule_threads(void){
 }
 
 int main() {
-    test_thread_creation_and_join();
+    Process s1, s2, s3;
+    s1.id = 1;
+    s1.burst_time = 10;
+    s1.status = 0;
+
+    s2.id = 2;
+    s2.burst_time = 13;
+    s2.status = 0;
+
+    s3.id = 3;
+    s3.burst_time = 3;
+    s3.status = 0;
+
+    Process process_list[3] = {s1, s2, s3};  
+    int thread_number = 3;
+    Process *ordered_processes = schedule(process_list, thread_number, SJF);
+
+    for(int i = 0; i < 3; i++){
+        printf("Process id: %d and BT: %d \n", ordered_processes[i].id, ordered_processes[i].burst_time);
+    }
     return 0;
 }

@@ -2,7 +2,7 @@
 TARGET = test_program
 
 # Archivos fuente
-SRC = main.c CEThreads.c
+SRC = main.c CEThreads.c Utils/Scheduler.c
 
 # Opciones de compilación
 CFLAGS = -Wall -Wextra
