@@ -1,36 +1,52 @@
-// barco.c
 #include "barco.h"
+#include <stdio.h>
 
-void inicializar_barco(Barco *barco, int id, TipoBarco tipo) {
-    barco->id = id;
-    barco->position = 0;  // Inicialmente en la posición 0
+// Función para agregar un barco
+void agregar_barco(Barco* barcos, int id, int direccion, TipoBarco tipo) {
+    barcos[id].id = id;
+    barcos[id].direccion = direccion;
 
-    // Asignar velocidad según el tipo de barco
+    // Ajustar la velocidad según el tipo de barco
     switch (tipo) {
         case NORMAL:
-            barco->speed = 1;  // Lenta
+            barcos[id].velocidad = 2; // Ejemplo: 2 unidades/segundo para barco normal
+            barcos[id].tipo = NORMAL;  // Asignar el tipo de barco
             break;
         case PESQUERA:
-            barco->speed = 2;  // Moderada
+            barcos[id].velocidad = 1.5; // Ejemplo: 1.5 unidades/segundo para barco pesquero
+            barcos[id].tipo = PESQUERA; // Asignar el tipo de barco
             break;
         case PATRULLA:
-            barco->speed = 3;  // Rápida
+            barcos[id].velocidad = 1; // Ejemplo: 1 unidad/segundo para barco patrullero
+            barcos[id].tipo = PATRULLA; // Asignar el tipo de barco
+            break;
+        default:
+            barcos[id].velocidad = 2; // Valor por defecto
+            barcos[id].tipo = NORMAL;  // Asignar tipo por defecto
+            break;
+    }
+}
+
+// Función para mostrar información del barco
+void mostrar_info_barco(const Barco* barco) {
+    const char* direccion_str = barco->direccion == 0 ? "izquierda a derecha" : "derecha a izquierda";
+    const char* tipo_str;
+
+    switch (barco->tipo) {
+        case NORMAL:
+            tipo_str = "Normal";
+            break;
+        case PESQUERA:
+            tipo_str = "Pesquera";
+            break;
+        case PATRULLA:
+            tipo_str = "Patrulla";
+            break;
+        default:
+            tipo_str = "Desconocido";
             break;
     }
 
-    barco->tipo = tipo;
-}
-
-void *mover_barco(void *arg) {
-    Barco *barco = (Barco *)arg;
-    while (barco->position < 100) {  // Por ejemplo, avanzar hasta la posición 100
-        barco->position += barco->speed;  // Mover el barco según su velocidad
-        printf("Barco %d (Tipo: %d) en la posición %d\n", barco->id, barco->tipo, barco->position);
-        CEthread_sleep(1);  // Dormir para simular el tiempo de movimiento
-    }
-    return NULL;
-}
-
-void liberar_barco(Barco *barco) {
-    // Aquí puedes agregar lógica para liberar recursos si es necesario
+    printf("Barco ID: %d, Tipo: %s, Dirección: %s, Velocidad: %.2d unidades/segundo\n",
+           barco->id, tipo_str, direccion_str, barco->velocidad);
 }

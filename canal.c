@@ -1,29 +1,24 @@
 #include "canal.h"
+#include "barco.h"
 #include <stdio.h>
 #include <unistd.h>
 
 // Definir variables globales
 int sentido_actual = 0;        // 0: izquierda a derecha, 1: derecha a izquierda
-int tiempo_letrero = 5;        // Tiempo en segundos para cambiar el letrero
+int tiempo_letrero = 10;       // Tiempo en segundos para cambiar el letrero
+int longitud_canal = 10;       // Longitud por defecto del canal (puede modificarse)
 CEmutex_t canal_mutex;         // Mutex para sincronizar el acceso al canal
 CEmutex_t letrero_mutex;       // Mutex para sincronizar el cambio del letrero
 
-// Inicializar el canal y las variables
-void iniciar_canal(int tiempo_letrero_definido) {
+// Inicializar el canal y las variables, incluyendo la longitud del canal
+void iniciar_canal(int tiempo_letrero_definido, int longitud_definida) {
     sentido_actual = 0;  // Comienza de izquierda a derecha
     tiempo_letrero = tiempo_letrero_definido;
+    longitud_canal = longitud_definida;  // Establecer la longitud del canal
     CEmutex_init(&canal_mutex);
     CEmutex_init(&letrero_mutex);
 }
 
-// Función para agregar un barco
-void agregar_barco(Barco* barcos, int id, int direccion, int tiempo_paso) {
-    barcos[id].id = id;
-    barcos[id].direccion = direccion;
-    barcos[id].tiempo_paso = tiempo_paso;
-}
-
-// Función que simula el cruce del barco
 void* cruzar_canal(void* arg) {
     Barco* barco = (Barco*) arg;
 
@@ -38,14 +33,15 @@ void* cruzar_canal(void* arg) {
         CEmutex_lock(&canal_mutex);  // Intentar de nuevo bloquear el canal
     }
 
-    // Simula el cruce del barco
+    // Simula el cruce del barco ajustando el tiempo según la longitud del canal
+    int tiempo_total_cruce = barco->velocidad * longitud_canal;  // El tiempo se basa en la velocidad
     printf("Barco %d está cruzando de %s a %s (tomará %d segundos)\n",
            barco->id,
            barco->direccion == 0 ? "izquierda" : "derecha",
            barco->direccion == 0 ? "derecha" : "izquierda",
-           barco->tiempo_paso);
+           tiempo_total_cruce);
 
-    CEthread_sleep(barco->tiempo_paso);  // Simula el tiempo de cruce
+    CEthread_sleep(tiempo_total_cruce);  // Simula el tiempo de cruce
     printf("Barco %d ha cruzado.\n", barco->id);
 
     // Desbloquear el canal para el siguiente barco

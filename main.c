@@ -1,63 +1,59 @@
 #include "canal.h"
+#include "barco.h"
+#include "calendarizacion.h"
 #include "CEThreads.h"
 #include <stdio.h>
 
-#define MAX_BARCOS 5  // Número máximo de barcos
 
 int main() {
-    CEthread_t hilos[MAX_BARCOS];
-    CEthread_t hilo_letrero;  // Hilo para cambiar el letrero
-    Barco barcos[MAX_BARCOS];
+    ColaBarcos cola;  // Crear la cola de barcos
+    inicializar_cola(&cola);  // Inicializar la cola de barcos
 
-    // Iniciar el canal con un cambio de letrero cada 5 segundos
-    iniciar_canal(5);
-    printf("Canal iniciado con cambio de letrero cada 5 segundos.\n");
+    Barco barcos[MAX_BARCOS];  // Array para almacenar barcos
+    int contador_barcos = 0;   // Contador de barcos generados
+    CEthread_t hilos[MAX_BARCOS];  // Crear hilos para cada barco
 
-    // Crear barcos en direcciones alternas
-    agregar_barco(barcos, 0, 0, 2);  // Barco 0, izquierda a derecha, tarda 2 segundos en cruzar
-    agregar_barco(barcos, 1, 1, 3);  // Barco 1, derecha a izquierda, tarda 3 segundos en cruzar
-    agregar_barco(barcos, 2, 0, 1);  // Barco 2, izquierda a derecha, tarda 1 segundo en cruzar
-    agregar_barco(barcos, 3, 1, 4);  // Barco 3, derecha a izquierda, tarda 4 segundos en cruzar
-    agregar_barco(barcos, 4, 0, 2);  // Barco 4, izquierda a derecha, tarda 2 segundos en cruzar
-    printf("Barcos agregados a la simulación.\n");
+    // Inicializar el canal
+    iniciar_canal(5, 10);  // Longitud del canal es de 10 unidades, tiempo del letrero es de 5 segundos
+    printf("Canal iniciado con longitud de %d unidades y cambio de letrero cada %d segundos.\n", longitud_canal, tiempo_letrero);
 
-    // Iniciar el hilo del letrero para cambiar el sentido del canal
-    if (CEthread_create(&hilo_letrero, (void*) cambiar_sentido, NULL) != 0) {
-        printf("Error al crear el hilo del letrero.\n");
-        return -1;
-    }
-    printf("Hilo del letrero iniciado.\n");
+    // Agregar barcos a la cola con diferentes configuraciones
+    printf("Agregando barcos a la cola...\n");
+    agregar_barco(barcos, contador_barcos++, 0, NORMAL);  // Barco 0, izquierda a derecha, normal
+    agregar_a_cola(&cola, &barcos[0]);
+    printf("Barco 0 agregado: dirección izquierda a derecha, tipo NORMAL.\n");
+    
+    agregar_barco(barcos, contador_barcos++, 1, PESQUERA);  // Barco 1, derecha a izquierda, pesquero
+    agregar_a_cola(&cola, &barcos[1]);
+    printf("Barco 1 agregado: dirección derecha a izquierda, tipo PESQUERA.\n");
 
-    // Crear los hilos para los barcos
-    for (int i = 0; i < MAX_BARCOS; i++) {
-        if (CEthread_create(&hilos[i], cruzar_canal, (void*) &barcos[i]) != 0) {
-            printf("Error al crear el hilo para el barco %d.\n", i);
-            return -1;
+    agregar_barco(barcos, contador_barcos++, 0, PATRULLA);  // Barco 2, izquierda a derecha, patrulla
+    agregar_a_cola(&cola, &barcos[2]);
+    printf("Barco 2 agregado: dirección izquierda a derecha, tipo PATRULLA.\n");
+
+    // Crear el hilo para manejar el cambio de sentido del letrero
+    printf("Iniciando el cambio de letrero en un hilo separado...\n");
+    CEthread_t hilo_letrero;
+    CEthread_create(&hilo_letrero, (void*)cambiar_sentido, NULL);
+
+    // Procesar barcos en el canal según el algoritmo de calendarización (FCFS en este caso)
+    while (cola.count > 0) {
+        // Obtener el siguiente barco según el algoritmo FCFS
+        Barco* siguiente_barco = obtener_siguiente_barco_fcfs(&cola);
+        if (siguiente_barco) {
+            printf("El siguiente barco en cruzar es el Barco %d (Dirección: %s).\n",
+                   siguiente_barco->id,
+                   siguiente_barco->direccion == 0 ? "izquierda a derecha" : "derecha a izquierda");
+
+            // Crear un hilo para cruzar el canal
+            CEthread_create(&hilos[siguiente_barco->id], cruzar_canal, (void*) siguiente_barco);
+            CEthread_join(&hilos[siguiente_barco->id], NULL);  // Esperar a que el barco cruce
         }
     }
-    printf("Hilos para los barcos iniciados.\n");
 
-    // Esperar a que todos los barcos crucen el canal
-    for (int i = 0; i < MAX_BARCOS; i++) {
-        if (CEthread_join(&hilos[i], NULL) != 0) {
-            printf("Error al unir el hilo del barco %d.\n", i);
-            return -1;
-        }
-        printf("Barco %d ha cruzado el canal correctamente.\n", i);
-    }
+    // Finalizar el hilo del letrero cuando no haya más barcos
+    printf("No hay más barcos en la cola, finalizando hilo del letrero...\n");
+    CEthread_end(&hilo_letrero);
 
-    // Terminar el hilo del letrero (esto puede ser opcional dependiendo de cómo lo manejes)
-    if (CEthread_end(&hilo_letrero) != 0) {
-        printf("Error al terminar el hilo del letrero.\n");
-        return -1;
-    }
-    printf("Hilo del letrero terminado.\n");
-
-    // Destruir los recursos (mutex)
-    CEmutex_destroy(&canal_mutex);
-    CEmutex_destroy(&letrero_mutex);
-    printf("Recursos de sincronización destruidos.\n");
-
-    printf("Simulación terminada correctamente.\n");
     return 0;
 }

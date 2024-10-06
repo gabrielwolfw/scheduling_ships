@@ -1,30 +1,25 @@
-// barco.h
 #ifndef BARCO_H
 #define BARCO_H
 
-#include "CEThreads.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include "CEThreads.h" // Asegúrate de incluir la biblioteca de hilos
 
-// Definición de tipos de barco
+// Definición del tipo de barco
 typedef enum {
-    NORMAL,
-    PESQUERA,
-    PATRULLA
+    NORMAL,   // Barco normal
+    PESQUERA, // Barco pesquero
+    PATRULLA  // Barco de patrulla
 } TipoBarco;
 
-// Estructura para representar un barco
+// Definición de la estructura Barco
 typedef struct {
-    int id;                // Identificador del barco
-    int position;         // Posición actual en el canal
-    int speed;            // Velocidad del barco
-    TipoBarco tipo;       // Tipo de barco
-    CEthread_t thread;    // Hilo asociado al barco
+    int id;           // Identificador del barco
+    int direccion;    // 0: izquierda a derecha, 1: derecha a izquierda
+    int velocidad;  // Tiempo que tarda en cruzar (en segundos)
+    TipoBarco tipo;   // Tipo de barco
 } Barco;
 
-// Funciones para trabajar con barcos
-void inicializar_barco(Barco *barco, int id, TipoBarco tipo);
-void *mover_barco(void *arg);
-void liberar_barco(Barco *barco);
+// Prototipos de funciones
+void agregar_barco(Barco* barcos, int id, int direccion, TipoBarco tipo);
+void mostrar_info_barco(const Barco* barco); // Función para mostrar información del barco
 
 #endif // BARCO_H
