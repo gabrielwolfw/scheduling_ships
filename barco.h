@@ -14,7 +14,7 @@ typedef enum {
 typedef struct {
     int id;           // Identificador del barco
     int direccion;    // 0: izquierda a derecha, 1: derecha a izquierda
-    int velocidad;  // Tiempo que tarda en cruzar (en segundos)
+    int velocidad;    // Tiempo que tarda en cruzar (en segundos)
     TipoBarco tipo;   // Tipo de barco
 } Barco;
 
