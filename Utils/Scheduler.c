@@ -11,7 +11,8 @@ Process *schedule(Process threads[], int thread_number, enum Algorithm algorithm
         break;
     case 2:
         printf("%s\n", "Algorithm selected: PRIORITY");
-        break;
+        ordered_processes = PRIORITY_schedule(threads, thread_number);
+        return ordered_processes;
     case 3:
         printf("%s\n", "Algorithm selected: SJF");
         ordered_processes = SJF_schedule(threads, thread_number);
@@ -42,5 +43,33 @@ Process *SJF_schedule(Process threads[], int thread_number)
         threads[i] = threads[index];
         threads[index] = temp;
     } 
+    return threads;
+}
+
+Process *RR_schedule(Process threads[], int thread_number){
+    return threads;
+}
+
+Process *FCFS_schedule(Process threads[], int thread_number){
+    return threads;
+}
+
+Process *PRIORITY_schedule(Process threads[], int thread_number){
+    int i, j, index = 0;
+    Process temp = threads[0];
+     // Sorting process according to their Burst Time.
+    for (i = 0; i < thread_number; i++) {
+        index = i;
+        for (j = i + 1; j < thread_number; j++)
+            if (threads[j].priority > threads[index].priority)
+                index = j;
+        temp = threads[i];
+        threads[i] = threads[index];
+        threads[index] = temp;
+    } 
+    return threads;
+}
+
+Process *RT_schedules(Process threads[], int thread_number){
     return threads;
 }

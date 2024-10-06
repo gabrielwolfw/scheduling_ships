@@ -13,16 +13,32 @@ enum Algorithm
     RT
 };
 
+//Higher number is higher priority
+enum Priority{
+    LOW = 1,
+    MEDIUM,
+    HIGH
+};
+
 // Estructura para CEthread
 typedef struct
 {
     int id;
     int burst_time;
+    enum Priority priority;
     CEthread_t thread;
 } Process;
 
 Process *schedule(Process threads[], int thread_number, enum Algorithm algorithm);
 
 Process *SJF_schedule(Process threads[], int thread_number);
+
+Process *RR_schedule(Process threads[], int thread_number);
+
+Process *FCFS_schedule(Process threads[], int thread_number);
+
+Process *PRIORITY_schedule(Process threads[], int thread_number);
+
+Process *RT_schedule(Process threads[], int thread_number);
 
 #endif
