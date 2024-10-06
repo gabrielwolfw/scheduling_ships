@@ -39,7 +39,7 @@ int main() {
     // Procesar barcos en el canal según el algoritmo de calendarización (FCFS en este caso)
     while (cola.count > 0) {
         // Obtener el siguiente barco según el algoritmo FCFS
-        Barco* siguiente_barco = obtener_siguiente_barco_sjf(&cola);
+        Barco* siguiente_barco = obtener_siguiente_barco_prioridad(&cola);
         if (siguiente_barco) {
             printf("El siguiente barco en cruzar es el Barco %d (Dirección: %s).\n",
                    siguiente_barco->id,
