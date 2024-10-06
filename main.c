@@ -38,12 +38,16 @@ void test_thread_creation_and_join() {
 }
 
 void schedule_threads(Process processes[], int process_number, enum Algorithm algorithm){
+    //Schedule returns a list of processes in the order they should be executed
     Process *ordered_processes = schedule(processes, process_number, algorithm);
+
+    //Print the execution order of the list
     printf("%s\n", "Thread schedule: \n");
     for(int i = 0; i < process_number; i++){
         printf("Process id: %d and BT: %d \n", ordered_processes[i].id, ordered_processes[i].burst_time);
     }
     for(int i = 0; i < process_number; i++){
+        //Executes each thread according to the ordered list
         CEthread_create(&ordered_processes[i].thread, print_message, "Welcome from running process: " + ordered_processes[i].id);
         //CEthread_join(&ordered_processes[i].thread, NULL);
     }
@@ -68,6 +72,7 @@ int main() {
     Process process_list[3] = {s1, s2, s3};  
     int thread_number = 3;
 
+    //Orders the process list according to the selected algorithm and starts execution of each thread
     schedule_threads(process_list, thread_number, SJF);
 
     return 0;

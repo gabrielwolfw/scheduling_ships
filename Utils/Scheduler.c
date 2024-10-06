@@ -1,5 +1,6 @@
 #include "Scheduler.h"
 
+//Thread number is the amount of threads in the list
 Process *schedule(Process threads[], int thread_number, enum Algorithm algorithm)
 {
     Process *ordered_processes;
