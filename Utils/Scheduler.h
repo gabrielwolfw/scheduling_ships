@@ -2,6 +2,7 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 #include <stdio.h>
+#include "../CEThreads.h"  
 
 enum Algorithm
 {
@@ -17,7 +18,7 @@ typedef struct
 {
     int id;
     int burst_time;
-    int status;
+    CEthread_t thread;
 } Process;
 
 Process *schedule(Process threads[], int thread_number, enum Algorithm algorithm);

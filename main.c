@@ -37,37 +37,38 @@ void test_thread_creation_and_join() {
     CEthread_join(&cethread2, NULL);
 }
 
-void schedule_threads(void){
-    // --- Comparación con CEthreads ---
-    CEthread_t cethread1, cethread2;
-    char *message3 = "CEthread - Hilo 1";
-    char *message4 = "CEthread - Hilo 2";
-
-    // Crear hilos usando CEthreads
-    CEthread_create(&cethread1, print_message, (void *)message3);
-    CEthread_create(&cethread2, print_message, (void *)message4);
+void schedule_threads(Process processes[], int process_number, enum Algorithm algorithm){
+    Process *ordered_processes = schedule(processes, process_number, algorithm);
+    printf("%s\n", "Thread schedule: \n");
+    for(int i = 0; i < process_number; i++){
+        printf("Process id: %d and BT: %d \n", ordered_processes[i].id, ordered_processes[i].burst_time);
+    }
+    for(int i = 0; i < process_number; i++){
+        CEthread_create(&ordered_processes[i].thread, print_message, "Welcome from running process: " + ordered_processes[i].id);
+        //CEthread_join(&ordered_processes[i].thread, NULL);
+    }
 }
 
 int main() {
+    CEthread_t cethread1, cethread2, cethread3;
+
     Process s1, s2, s3;
     s1.id = 1;
     s1.burst_time = 10;
-    s1.status = 0;
+    s1.thread = cethread1;
 
     s2.id = 2;
     s2.burst_time = 13;
-    s2.status = 0;
+    s2.thread = cethread2;
 
     s3.id = 3;
     s3.burst_time = 3;
-    s3.status = 0;
+    s3.thread = cethread3;
 
     Process process_list[3] = {s1, s2, s3};  
     int thread_number = 3;
-    Process *ordered_processes = schedule(process_list, thread_number, SJF);
 
-    for(int i = 0; i < 3; i++){
-        printf("Process id: %d and BT: %d \n", ordered_processes[i].id, ordered_processes[i].burst_time);
-    }
+    schedule_threads(process_list, thread_number, SJF);
+
     return 0;
 }
