@@ -1,4 +1,5 @@
 #include "barco.h"
+#include "canal.h"
 #include <stdio.h>
 
 // Función para agregar un barco
@@ -9,19 +10,19 @@ void agregar_barco(Barco* barcos, int id, int direccion, TipoBarco tipo) {
     // Ajustar la velocidad según el tipo de barco
     switch (tipo) {
         case NORMAL:
-            barcos[id].velocidad = 2; // Ejemplo: 2 unidades/segundo para barco normal
+            barcos[id].velocidad = 2.0; // Ejemplo: 2 unidades/segundo para barco normal
             barcos[id].tipo = NORMAL;  // Asignar el tipo de barco
             break;
-        case PESQUERA:
+        case PESQUERO:
             barcos[id].velocidad = 1.5; // Ejemplo: 1.5 unidades/segundo para barco pesquero
-            barcos[id].tipo = PESQUERA; // Asignar el tipo de barco
+            barcos[id].tipo = PESQUERO; // Asignar el tipo de barco
             break;
         case PATRULLA:
-            barcos[id].velocidad = 1; // Ejemplo: 1 unidad/segundo para barco patrullero
+            barcos[id].velocidad = 1.0; // Ejemplo: 1 unidad/segundo para barco patrullero
             barcos[id].tipo = PATRULLA; // Asignar el tipo de barco
             break;
         default:
-            barcos[id].velocidad = 2; // Valor por defecto
+            barcos[id].velocidad = 2.0; // Valor por defecto
             barcos[id].tipo = NORMAL;  // Asignar tipo por defecto
             break;
     }
@@ -36,8 +37,8 @@ void mostrar_info_barco(const Barco* barco) {
         case NORMAL:
             tipo_str = "Normal";
             break;
-        case PESQUERA:
-            tipo_str = "Pesquera";
+        case PESQUERO:
+            tipo_str = "Pesquero";
             break;
         case PATRULLA:
             tipo_str = "Patrulla";
@@ -47,6 +48,6 @@ void mostrar_info_barco(const Barco* barco) {
             break;
     }
 
-    printf("Barco ID: %d, Tipo: %s, Dirección: %s, Velocidad: %.2d unidades/segundo\n",
+    printf("Barco ID: %d, Tipo: %s, Dirección: %s, Velocidad: %.2f unidades/segundo\n",
            barco->id, tipo_str, direccion_str, barco->velocidad);
 }

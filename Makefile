@@ -1,5 +1,5 @@
 # Nombre del ejecutable
-TARGET = test_program
+TARGET = simulacion
 
 # Archivos fuente
 SRC = main.c CEThreads.c calendarizacion.c barco.c canal.c

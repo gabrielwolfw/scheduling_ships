@@ -1,21 +1,21 @@
 #ifndef BARCO_H
 #define BARCO_H
 
-#include "CEThreads.h" // Asegúrate de incluir la biblioteca de hilos
+#include "CEThreads.h"
 
-// Definición del tipo de barco
 typedef enum {
-    NORMAL,   // Barco normal
-    PESQUERA, // Barco pesquero
-    PATRULLA  // Barco de patrulla
+    NORMAL,
+    PESQUERO,
+    PATRULLA
 } TipoBarco;
 
-// Definición de la estructura Barco
 typedef struct {
-    int id;           // Identificador del barco
-    int direccion;    // 0: izquierda a derecha, 1: derecha a izquierda
-    int velocidad;    // Tiempo que tarda en cruzar (en segundos)
-    TipoBarco tipo;   // Tipo de barco
+    int id;
+    TipoBarco tipo; // Para el algoritmo de prioridad
+    float velocidad; // Para el algoritmo de SJF
+    int direccion;  // 0: izquierda a derecha, 1: derecha a izquierda
+    int tiempo_restante;  // Para Round Robin
+    int deadline;  // Para algoritmo de Tiempo Real
 } Barco;
 
 // Prototipos de funciones
