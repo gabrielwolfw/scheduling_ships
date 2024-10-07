@@ -1,181 +1,58 @@
+#include "canal.h"
+#include "barco.h"
+#include "calendarizacion.h"
+#include "CEThreads.h"
 #include <stdio.h>
-#include <pthread.h>
-#include "CEThreads.h"  
-
-CEmutex_t print_mutex; // Mutex global para la impresión
-void *print_message(void *ptr) {
-    char *message = (char *)ptr;
-    CEmutex_lock(&print_mutex);  // Bloquear el mutex antes de imprimir
-    printf("%s\n", message);
-    CEmutex_unlock(&print_mutex); // Desbloquear el mutex después de imprimir
-    return NULL;
-}
-
-void test_thread_creation_and_join() {
-    // --- Comparación con Pthreads ---
-    pthread_t pthread1, pthread2;
-    char *message1 = "Pthread - Hilo 1";
-    char *message2 = "Pthread - Hilo 2";
-
-    // Crear hilos usando Pthreads
-    if (pthread_create(&pthread1, NULL, print_message, (void *)message1) != 0) {
-        perror("Error creando el Pthread 1");
-    }
-    if (pthread_create(&pthread2, NULL, print_message, (void *)message2) != 0) {
-        perror("Error creando el Pthread 2");
-    }
-
-    // Unir hilos Pthreads
-    pthread_join(pthread1, NULL);
-    pthread_join(pthread2, NULL);
-
-    // --- Comparación con CEthreads ---
-    CEthread_t cethread1, cethread2;
-    char *message3 = "CEthread - Hilo 1";
-    char *message4 = "CEthread - Hilo 2";
-
-    // Crear hilos usando CEthreads
-    if (CEthread_create(&cethread1, print_message, (void *)message3) != 0) {
-        perror("Error creando el CEthread 1");
-    }
-    if (CEthread_create(&cethread2, print_message, (void *)message4) != 0) {
-        perror("Error creando el CEthread 2");
-    }
-
-    // Unir hilos CEthreads
-    CEthread_join(&cethread1, NULL);
-    CEthread_join(&cethread2, NULL);
-}
-
-
-void test_thread_mutex() {
-    // Test CEmutex
-    CEmutex_t ce_mutex;
-    int ce_result;
-
-    printf("Testing CEmutex:\n");
-
-    ce_result = CEmutex_init(&ce_mutex);
-    printf("CEmutex_init result: %d\n", ce_result);
-
-    ce_result = CEmutex_lock(&ce_mutex);
-    printf("CEmutex_lock result: %d\n", ce_result);
-
-    ce_result = CEmutex_unlock(&ce_mutex);
-    printf("CEmutex_unlock result: %d\n", ce_result);
-
-    ce_result = CEmutex_destroy(&ce_mutex);
-    printf("CEmutex_destroy result: %d\n", ce_result); // Corrected to include the return value
-
-    // Test pthread_mutex
-    pthread_mutex_t pthread_mutex;
-    int pthread_result;
-
-    printf("Testing pthread_mutex:\n");
-
-    pthread_result = pthread_mutex_init(&pthread_mutex, NULL);
-    printf("pthread_mutex_init result: %d\n", pthread_result);
-
-    pthread_result = pthread_mutex_lock(&pthread_mutex);
-    printf("pthread_mutex_lock result: %d\n", pthread_result);
-
-    pthread_result = pthread_mutex_unlock(&pthread_mutex);
-    printf("pthread_mutex_unlock result: %d\n", pthread_result);
-
-    pthread_result = pthread_mutex_destroy(&pthread_mutex);
-    printf("pthread_mutex_destroy result: %d\n", pthread_result); // Corrected to include the return value
-
-    printf("\nMutex tests completed.\n");
-}
-
-void *long_running_task_pthread(void *arg) {
-    int *count = (int *)arg;
-    while (*count < 5) {
-        printf("Pthread en ejecución: %d\n", *count);
-        (*count)++;
-        sleep(1);  // Simular trabajo
-    }
-    return NULL;
-}
-
-int test_pthread_end() {
-    pthread_t pthread;
-    int count = 0;
-
-    // Crear el hilo
-    if (pthread_create(&pthread, NULL, long_running_task_pthread, (void *)&count) != 0) {
-        fprintf(stderr, "Error creando el Pthread.\n");
-        return -1;
-    }
-
-    // Dejar el hilo correr hasta que complete su tarea
-    sleep(5); // Allow enough time for the thread to complete
-
-    // Terminar el hilo (usando pthread_cancel para terminarlo)
-    if (pthread_cancel(pthread) != 0) {
-        fprintf(stderr, "Error cancelando el Pthread.\n");
-        return -1;
-    }
-
-    // Esperar a que el hilo termine
-    if (pthread_join(pthread, NULL) != 0) {
-        fprintf(stderr, "Error esperando al Pthread.\n");
-        return -1;
-    }
-
-    printf("El Pthread ha terminado correctamente.\n");
-    return 0;
-}
-
-void *long_running_task(void *arg) {
-    int *count = (int *)arg;
-    while (*count < 5) {
-        printf("Hilo en ejecución (CEthread): %d\n", *count);
-        (*count)++;
-        sleep(1);  // Simular trabajo
-    }
-    return NULL;
-}
-
-int test_thread_end() {
-    CEthread_t cethread;
-    int count = 0;
-
-    // Crear el CEthread
-    if (CEthread_create(&cethread, long_running_task, (void *)&count) != 0) {
-        fprintf(stderr, "Error creando el CEthread.\n");
-        return -1;
-    }
-
-    // Dejar el CEthread correr por un momento
-    sleep(2);
-
-    // Terminar el CEthread
-    if (CEthread_end(&cethread) != 0) {
-        fprintf(stderr, "Error terminando el CEthread.\n");
-        return -1;
-    }
-
-    // Verificar que el CEthread ha terminado
-    if (cethread.status == 0) {
-        printf("El CEthread ha terminado correctamente.\n");
-    } else {
-        printf("El CEthread aún está activo.\n");
-    }
-
-    return 0;
-}
 
 int main() {
-    CEmutex_init(&print_mutex); // Inicializar el mutex
-    test_thread_creation_and_join();
-    test_thread_mutex();
-    printf("\nPrueba de Pthreads:\n");
-    test_pthread_end();
+    ColaBarcos cola;  // Crear la cola de barcos
+    inicializar_cola(&cola);  // Inicializar la cola de barcos
 
-    printf("\nPrueba de CEthreads:\n");
-    test_thread_end(); // Llamada a la prueba de CEthreads
+    Barco barcos[MAX_BARCOS];  // Array para almacenar barcos
+    int contador_barcos = 0;   // Contador de barcos generados
+    CEthread_t hilos[MAX_BARCOS];  // Crear hilos para cada barco
 
-    CEmutex_destroy(&print_mutex); // Destruir el mutex
+    // Inicializar el canal con el modo de control de flujo
+    iniciar_canal(5, 10, MODO_LETRERO, 3);  // Longitud del canal es de 10 unidades, tiempo del letrero es de 5 segundos
+    printf("Canal iniciado con longitud de %d unidades y cambio de letrero cada %d segundos.\n", longitud_canal, tiempo_letrero);
+
+    // Agregar barcos a la cola con diferentes configuraciones
+    printf("Agregando barcos a la cola...\n");
+    agregar_barco(barcos, contador_barcos++, 0, NORMAL);  // Barco 0, izquierda a derecha, normal
+    agregar_a_cola(&cola, &barcos[0]);
+    printf("Barco 0 agregado: dirección izquierda a derecha, tipo NORMAL.\n");
+
+    agregar_barco(barcos, contador_barcos++, 1, PESQUERO);  // Barco 1, derecha a izquierda, pesquero
+    agregar_a_cola(&cola, &barcos[1]);
+    printf("Barco 1 agregado: dirección derecha a izquierda, tipo PESQUERO.\n");
+
+    agregar_barco(barcos, contador_barcos++, 0, PATRULLA);  // Barco 2, izquierda a derecha, patrulla
+    agregar_a_cola(&cola, &barcos[2]);
+    printf("Barco 2 agregado: dirección izquierda a derecha, tipo PATRULLA.\n");
+
+    // Crear el hilo para manejar el cambio de sentido del letrero
+    printf("Iniciando el cambio de letrero en un hilo separado...\n");
+    CEthread_t hilo_letrero;
+    CEthread_create(&hilo_letrero, (void*)cambiar_sentido, NULL);
+
+    // Procesar barcos en el canal según el algoritmo de calendarización (FCFS en este caso)
+    while (cola.count > 0) {
+        // Obtener el siguiente barco según el algoritmo de calendarización
+        Barco* siguiente_barco = obtener_siguiente_barco_rr(&cola);
+        if (siguiente_barco) {
+            printf("El siguiente barco en cruzar es el Barco %d (Dirección: %s).\n",
+                   siguiente_barco->id,
+                   siguiente_barco->direccion == 0 ? "izquierda a derecha" : "derecha a izquierda");
+
+            // Crear un hilo para cruzar el canal
+            CEthread_create(&hilos[siguiente_barco->id], cruzar_canal, (void*) siguiente_barco);
+            CEthread_join(&hilos[siguiente_barco->id], NULL);  // Esperar a que el barco cruce
+        }
+    }
+
+    // Finalizar el hilo del letrero cuando no haya más barcos
+    printf("No hay más barcos en la cola, finalizando hilo del letrero...\n");
+    CEthread_end(&hilo_letrero);
+
     return 0;
 }

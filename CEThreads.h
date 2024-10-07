@@ -34,6 +34,7 @@ typedef struct {
 int CEthread_create(CEthread_t *thread, void *(*start_routine)(void *), void *arg);
 int CEthread_join(CEthread_t *thread, void **retval);
 int CEthread_end(CEthread_t *thread);
+void CEthread_sleep(int segundos);
 
 
 // Funciones públicas para mutex

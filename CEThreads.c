@@ -109,7 +109,9 @@ int CEthread_end(CEthread_t *thread) {
     return 0;
 }
 
-
+void CEthread_sleep(int segundos) {
+    usleep(segundos * 1000000); // Convertir segundos a microsegundos
+}
 
 
 // Inicializar el mutex
