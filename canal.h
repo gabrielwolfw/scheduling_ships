@@ -4,11 +4,16 @@
 #include "CEThreads.h"
 #include "barco.h"  // Incluir la definición de la estructura Barco
 
+// Variables globales para controlar el estado del canal y el letrero
+extern int terminar_letrero;  // Variable para detener el letrero
+extern int canal_libre;  // Variable que indica si el canal está libre
+
 // Enum para los modos de control de flujo
 typedef enum {
     MODO_LETRERO,
     MODO_EQUIDAD,
-    MODO_TICO
+    MODO_TICO,
+    MODO_PRIORIDAD 
 } ModoControlFlujo;
 
 // Variables globales para controlar el canal
@@ -18,6 +23,8 @@ extern int longitud_canal;    // Longitud del canal
 extern int parametro_w;       // Número de barcos que deben pasar de cada lado en modo equidad
 extern int barcos_pasados;    // Contador de barcos que han pasado en el sentido actual
 extern ModoControlFlujo modo_actual;  // Modo actual de control de flujo
+extern int terminar_letrero;  // Variable para detener el letrero
+extern int canal_libre;  // Variable que indica si el canal está libre
 extern CEmutex_t canal_mutex;
 extern CEmutex_t letrero_mutex;
 

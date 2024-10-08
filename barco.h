@@ -3,6 +3,9 @@
 
 #include "CEThreads.h"
 
+// Prototipo de la función main_barco
+void main_barco();
+
 typedef enum {
     NORMAL,
     PESQUERO,

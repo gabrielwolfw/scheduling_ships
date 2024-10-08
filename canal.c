@@ -7,6 +7,8 @@
 // Definir variables globales
 int sentido_actual = 0;        // 0: izquierda a derecha, 1: derecha a izquierda
 int tiempo_letrero = 10;       // Tiempo en segundos para cambiar el letrero
+int terminar_letrero = 0;  // Indicar cuándo detener el letrero
+int barcos_en_cola[2] = {0, 0};  // Barcos esperando en cada dirección
 int longitud_canal = 10;       // Longitud por defecto del canal (puede modificarse)
 int parametro_w = 3;           // Número de barcos que deben pasar de cada lado
 int barcos_pasados = 0;        // Contador de barcos que han pasado en el sentido actual
@@ -21,9 +23,13 @@ void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoContr
     modo_actual = modo;
     parametro_w = parametro_w_definido;
     barcos_pasados = 0;
+    terminar_letrero = 0;  // Inicializar a 0 (activo)
+    canal_libre = 1;  // Inicializar el canal como libre
+
     CEmutex_init(&canal_mutex);
     CEmutex_init(&letrero_mutex);
 }
+
 
 void* cruzar_canal_letrero(void* arg) {
     Barco* barco = (Barco*) arg;
@@ -119,16 +125,22 @@ void* cruzar_canal(void* arg) {
 }
 
 void cambiar_sentido() {
-    while (1) {
+    while (!terminar_letrero) {
         CEthread_sleep(tiempo_letrero);
 
         CEmutex_lock(&letrero_mutex);
 
-        if (modo_actual == MODO_LETRERO) {
-            sentido_actual = 1 - sentido_actual;
-            printf("Cambiando el sentido del canal a %s.\n",
-                   sentido_actual == 0 ? "izquierda a derecha" : "derecha a izquierda");
+        // No cambiar el sentido si hay un barco cruzando actualmente
+        CEmutex_lock(&canal_mutex); // Asegura acceso exclusivo al estado del canal
+        if (canal_libre) {
+            // Solo cambia el sentido si no hay barcos cruzando
+            if (modo_actual == MODO_LETRERO) {
+                sentido_actual = 1 - sentido_actual;
+                printf("Cambiando el sentido del canal a %s.\n",
+                       sentido_actual == 0 ? "izquierda a derecha" : "derecha a izquierda");
+            }
         }
+        CEmutex_unlock(&canal_mutex);
 
         CEmutex_unlock(&letrero_mutex);
     }
