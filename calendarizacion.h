@@ -8,20 +8,36 @@
 typedef struct {
     Barco *barcos[MAX_BARCOS];
     int count;
-    int quantum;  // Para Round Robin
 } ColaBarcos;
 
-// Inicializar la cola de barcos
-void inicializar_cola(ColaBarcos *cola);
+typedef struct {
+    ColaBarcos izquierda;
+    ColaBarcos derecha;
+    int quantum;  // Para Round Robin
+} SistemaCalendarizacion;
 
-// Agregar un barco a la cola
-void agregar_a_cola(ColaBarcos *cola, Barco *barco);
+typedef enum {
+    FCFS,
+    ROUND_ROBIN,
+    TIEMPO_REAL,
+    PRIORIDAD,
+    SJF
+} AlgoritmoCalendarizacion;
 
-// Algoritmos de calendarización
-Barco *obtener_siguiente_barco_fcfs(ColaBarcos *cola);
-Barco *obtener_siguiente_barco_rr(ColaBarcos *cola);
-Barco *obtener_siguiente_barco_tiempo_real(ColaBarcos *cola);
-Barco *obtener_siguiente_barco_prioridad(ColaBarcos *cola);
-Barco *obtener_siguiente_barco_sjf(ColaBarcos *cola);
+// Inicializar el sistema de calendarización
+void inicializar_sistema(SistemaCalendarizacion *sistema);
+
+// Agregar un barco a la cola correspondiente
+void agregar_a_cola(SistemaCalendarizacion *sistema, Barco *barco);
+
+// Función general para obtener el siguiente barco según el algoritmo de calendarización
+Barco *obtener_siguiente_barco(SistemaCalendarizacion *sistema, int direccion_actual, AlgoritmoCalendarizacion algoritmo);
+
+// Algoritmos de calendarización específicos (ahora son funciones internas)
+Barco *obtener_siguiente_barco_fcfs(SistemaCalendarizacion *sistema, int direccion_actual);
+Barco *obtener_siguiente_barco_rr(SistemaCalendarizacion *sistema, int direccion_actual);
+Barco *obtener_siguiente_barco_tiempo_real(SistemaCalendarizacion *sistema, int direccion_actual);
+Barco *obtener_siguiente_barco_prioridad(SistemaCalendarizacion *sistema, int direccion_actual);
+Barco *obtener_siguiente_barco_sjf(SistemaCalendarizacion *sistema, int direccion_actual);
 
 #endif // CALENDARIZACION_H

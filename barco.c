@@ -1,31 +1,41 @@
 #include "barco.h"
-#include "canal.h"
 #include <stdio.h>
 
+#define MAX_BARCOS 100 // Definir el número máximo de barcos
+
 // Función para agregar un barco
-void agregar_barco(Barco* barcos, int id, int direccion, TipoBarco tipo) {
+void agregar_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal) {
+    if (id < 0 || id >= MAX_BARCOS) {
+        printf("Error: ID de barco inválido.\n");
+        return;
+    }
+
     barcos[id].id = id;
     barcos[id].direccion = direccion;
+    barcos[id].tipo = tipo;
 
-    // Ajustar la velocidad según el tipo de barco
+    // Ajustar la velocidad y deadline según el tipo de barco
     switch (tipo) {
         case NORMAL:
             barcos[id].velocidad = 2.0; // Ejemplo: 2 unidades/segundo para barco normal
-            barcos[id].tipo = NORMAL;  // Asignar el tipo de barco
+            barcos[id].deadline = 10;
             break;
         case PESQUERO:
             barcos[id].velocidad = 1.5; // Ejemplo: 1.5 unidades/segundo para barco pesquero
-            barcos[id].tipo = PESQUERO; // Asignar el tipo de barco
+            barcos[id].deadline = 8;
             break;
         case PATRULLA:
             barcos[id].velocidad = 1.0; // Ejemplo: 1 unidad/segundo para barco patrullero
-            barcos[id].tipo = PATRULLA; // Asignar el tipo de barco
+            barcos[id].deadline = 5;
             break;
         default:
             barcos[id].velocidad = 2.0; // Valor por defecto
-            barcos[id].tipo = NORMAL;  // Asignar tipo por defecto
+            barcos[id].deadline = 10;
             break;
     }
+    
+    // Inicializar el tiempo restante
+    barcos[id].tiempo_restante = longitud_canal / barcos[id].velocidad;
 }
 
 // Función para mostrar información del barco

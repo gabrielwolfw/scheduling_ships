@@ -19,7 +19,7 @@ typedef struct {
 } Barco;
 
 // Prototipos de funciones
-void agregar_barco(Barco* barcos, int id, int direccion, TipoBarco tipo);
+void agregar_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal); // Función para agregar un barco
 void mostrar_info_barco(const Barco* barco); // Función para mostrar información del barco
 
 #endif // BARCO_H
