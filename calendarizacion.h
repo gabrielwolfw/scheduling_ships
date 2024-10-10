@@ -3,19 +3,20 @@
 
 #include "barco.h"
 
-#define MAX_BARCOS 100
+// Definición de un nodo para la lista enlazada de barcos
+typedef struct NodoBarco {
+    Barco *barco;
+    struct NodoBarco *siguiente;
+} NodoBarco;
 
+// Sistema de calendarización que contiene las colas izquierda y derecha
 typedef struct {
-    Barco *barcos[MAX_BARCOS];
-    int count;
-} ColaBarcos;
-
-typedef struct {
-    ColaBarcos izquierda;
-    ColaBarcos derecha;
-    int quantum;  // Para Round Robin
+    NodoBarco *izquierda;  // Lista enlazada de barcos que se dirigen a la izquierda
+    NodoBarco *derecha;    // Lista enlazada de barcos que se dirigen a la derecha
+    int quantum;           // Para el algoritmo Round Robin
 } SistemaCalendarizacion;
 
+// Enumeración para los algoritmos de calendarización
 typedef enum {
     FCFS,
     ROUND_ROBIN,
@@ -29,6 +30,9 @@ void inicializar_sistema(SistemaCalendarizacion *sistema);
 
 // Agregar un barco a la cola correspondiente
 void agregar_a_cola(SistemaCalendarizacion *sistema, Barco *barco);
+
+// Remover un barco de la cola correspondiente
+void remover_de_cola(NodoBarco **cola, Barco *barco);
 
 // Función general para obtener el siguiente barco según el algoritmo de calendarización
 Barco *obtener_siguiente_barco(SistemaCalendarizacion *sistema, int direccion_actual, AlgoritmoCalendarizacion algoritmo);

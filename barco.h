@@ -3,23 +3,26 @@
 
 #include "CEThreads.h"
 
+// Definición del tipo de barco
 typedef enum {
     NORMAL,
     PESQUERO,
     PATRULLA
 } TipoBarco;
 
-typedef struct {
+// Estructura de Barco
+typedef struct Barco {
     int id;
-    TipoBarco tipo; // Para el algoritmo de prioridad
-    float velocidad; // Para el algoritmo de SJF
-    int direccion;  // 0: izquierda a derecha, 1: derecha a izquierda
+    TipoBarco tipo;       // Para el algoritmo de prioridad
+    float velocidad;      // Para el algoritmo de SJF
+    int direccion;        // 0: izquierda a derecha, 1: derecha a izquierda
     int tiempo_restante;  // Para Round Robin
-    int deadline;  // Para algoritmo de Tiempo Real
+    int deadline;         // Para el algoritmo de Tiempo Real
+    struct Barco *siguiente; // Puntero para listas enlazadas (si es necesario en otras partes del sistema)
 } Barco;
 
 // Prototipos de funciones
-void agregar_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal); // Función para agregar un barco
+void inicializar_barco(Barco* barco, int id, int direccion, TipoBarco tipo, int longitud_canal); // Función para inicializar un barco
 void mostrar_info_barco(const Barco* barco); // Función para mostrar información del barco
 
 #endif // BARCO_H

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <math.h>
 
 // Variables globales
 int sentido_actual = 0;        // 0: izquierda a derecha, 1: derecha a izquierda
@@ -16,6 +17,7 @@ CEmutex_t letrero_mutex;       // Mutex para sincronizar el cambio del letrero
 SistemaCalendarizacion sistema_cal; // Sistema de calendarización
 AlgoritmoCalendarizacion algoritmo_actual = FCFS; // Algoritmo de calendarización actual
 bool canal_activo = true;      // Estado del canal
+bool canal_ocupado = false;    // Estado del canal
 
 void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoControlFlujo modo, int parametro_w_definido, AlgoritmoCalendarizacion algoritmo) {
     sentido_actual = 0;  // Comienza de izquierda a derecha
@@ -33,55 +35,61 @@ void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoContr
 void* cruzar_canal_letrero(void* arg) {
     Barco* barco = (Barco*) arg;
 
-    CEmutex_lock(&canal_mutex);
-
-    // Espera hasta que sea la dirección correcta para cruzar
-    while (barco->direccion != sentido_actual) {
-        CEmutex_unlock(&canal_mutex);
-        CEthread_sleep(1);
+    while (barco->tiempo_restante > 0) {
         CEmutex_lock(&canal_mutex);
-    }
 
-    Barco* siguiente = obtener_siguiente_barco(&sistema_cal, sentido_actual, algoritmo_actual);
-    if (siguiente != barco) {
-        // Si no es el siguiente barco, se debe volver a agregar a la cola
-        agregar_a_cola(&sistema_cal, barco);
+        // Espera hasta que sea la dirección correcta para cruzar
+        while (barco->direccion != sentido_actual) {
+            CEmutex_unlock(&canal_mutex);
+            CEthread_sleep(1);
+            CEmutex_lock(&canal_mutex);
+        }
+
+        // Obtener el siguiente barco basado en el algoritmo de calendarización
+        Barco* siguiente = obtener_siguiente_barco(&sistema_cal, sentido_actual, algoritmo_actual);
+
+        if (siguiente != barco) {
+            // Si no es su turno, liberar el mutex y dormir un momento
+            CEmutex_unlock(&canal_mutex);
+            CEthread_sleep(1);
+            continue;
+        }
+
+        // Calcular el tiempo de cruce basado en la velocidad del barco
+        int tiempo_cruce = (int)(longitud_canal / barco->velocidad);
+        int tiempo_this_turn = (algoritmo_actual == ROUND_ROBIN) ? 
+                               (tiempo_cruce > sistema_cal.quantum ? sistema_cal.quantum : tiempo_cruce) : 
+                               tiempo_cruce;
+
+        printf("Barco %d está cruzando de %s a %s por %d segundos\n",
+               barco->id,
+               barco->direccion == 0 ? "izquierda" : "derecha",
+               barco->direccion == 0 ? "derecha" : "izquierda",
+               tiempo_this_turn);
+
+        // Marcar el canal como ocupado
+        canal_ocupado = true;
         CEmutex_unlock(&canal_mutex);
-        return NULL;
-    }
 
-    int tiempo_total_cruce = longitud_canal / barco->velocidad;
+        // Simular el cruce del barco
+        CEthread_sleep(tiempo_this_turn);
 
-    // Calcular el tiempo restante para el cambio de letrero (Ejemplo: puedes mantener esta variable actualizada en otro hilo)
-    int tiempo_letrero_restante = tiempo_letrero; // Este valor debe ser el tiempo real que queda antes de que cambie el letrero.
+        CEmutex_lock(&canal_mutex);
+        barco->tiempo_restante -= tiempo_this_turn;
 
-    // Verificar si el tiempo total de cruce es mayor que el tiempo restante del letrero
-    if (tiempo_total_cruce > tiempo_letrero_restante) {
-        printf("Barco %d no puede cruzar porque está fuera del tiempo de letrero. Esperando...\n", barco->id);
-        agregar_a_cola(&sistema_cal, barco); // Reagregar a la cola
+        if (barco->tiempo_restante <= 0) {
+            canal_ocupado = false;
+            printf("Barco %d ha cruzado completamente.\n", barco->id);
+        } else if (algoritmo_actual == ROUND_ROBIN) {
+            canal_ocupado = false;
+            printf("Barco %d ha usado su quantum y vuelve a la cola.\n", barco->id);
+        }
+
         CEmutex_unlock(&canal_mutex);
-        return NULL; // Salir para esperar
     }
 
-    // Procede con el cruce si está dentro del tiempo permitido
-    printf("Barco %d está cruzando de %s a %s tomará %d segundos\n",
-           barco->id,
-           barco->direccion == 0 ? "izquierda" : "derecha",
-           barco->direccion == 0 ? "derecha" : "izquierda",
-           tiempo_total_cruce);
-
-    CEthread_sleep(tiempo_total_cruce);
-    printf("Barco %d ha cruzado de %s a %s. Tiempo total de cruce: %d segundos.\n",
-           barco->id,
-           barco->direccion == 0 ? "izquierda" : "derecha",
-           barco->direccion == 0 ? "derecha" : "izquierda",
-           tiempo_total_cruce);
-
-    CEmutex_unlock(&canal_mutex);
     return NULL;
 }
-
-
 
 void* cruzar_canal_equidad(void* arg) {
     Barco* barco = (Barco*) arg;
@@ -96,7 +104,7 @@ void* cruzar_canal_equidad(void* arg) {
 
     Barco* siguiente = obtener_siguiente_barco(&sistema_cal, sentido_actual, algoritmo_actual);
     if (siguiente != barco) {
-        agregar_a_cola(&sistema_cal, barco);
+        agregar_a_cola(&sistema_cal, barco);  // Aquí es clave que esta función ya usa listas
         CEmutex_unlock(&canal_mutex);
         return NULL;
     }
@@ -165,28 +173,23 @@ void* cruzar_canal(void* arg) {
     }
 }
 
-void cambiar_sentido() {
-    while (1) { // Bucle infinito
-        CEthread_sleep(tiempo_letrero); // Esperar el tiempo de letrero
+void* cambiar_sentido(void* arg) {
+     (void)arg;
+    while (canal_activo) {
+        CEthread_sleep(tiempo_letrero);
 
-        // Asegúrate de usar el mutex si estás leyendo/modificando sentido_actual
-        CEmutex_lock(&letrero_mutex);
-
-        if (modo_actual == MODO_LETRERO) {
-            sentido_actual = 1 - sentido_actual; // Cambiar sentido
+        CEmutex_lock(&canal_mutex);
+        if (!canal_ocupado) {
+            sentido_actual = 1 - sentido_actual;
             printf("Cambiando el sentido del canal a %s.\n",
                    sentido_actual == 0 ? "izquierda a derecha" : "derecha a izquierda");
         }
-
-        CEmutex_unlock(&letrero_mutex);
-        
-        // Verifica si el canal sigue activo
-        if (!canal_activo) {
-            break; // Terminar el hilo si el canal ya no está activo
-        }
+        CEmutex_unlock(&canal_mutex);
     }
+    return NULL;
 }
 
+//Agregar barco a la cola del algoritmo
 void agregar_barco_al_canal(Barco* barco) {
-    agregar_a_cola(&sistema_cal, barco);
+    agregar_a_cola(&sistema_cal, barco);  
 }
