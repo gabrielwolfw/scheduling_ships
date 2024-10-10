@@ -14,6 +14,7 @@ int main() {
 
     // Inicialización del canal
     iniciar_canal(tiempo_letrero, longitud_canal, modo, parametro_w, algoritmo);
+    printf("Tiempo de letrero: %d segundos\n", tiempo_letrero);
 
     // Crear barcos
     Barco barcos[NUM_BARCOS];
@@ -37,13 +38,17 @@ int main() {
     // Crear el hilo para el cambio de sentido del letrero
     CEthread_t hilo_cambio_sentido;
     if (modo == MODO_LETRERO) {
+        canal_activo = true;
         CEthread_create(&hilo_cambio_sentido, (void*)cambiar_sentido, NULL);
     }
 
     // Procesar el cruce de los barcos en el canal
     CEthread_t hilos_barcos[NUM_BARCOS];
     for (int i = 0; i < NUM_BARCOS; i++) {
-        CEthread_create(&hilos_barcos[i], cruzar_canal, &barcos[i]);
+        if (CEthread_create(&hilos_barcos[i], cruzar_canal, &barcos[i]) != 0) {
+            fprintf(stderr, "Error al crear hilo para el barco %d\n", i);
+            // Manejo de error
+        }  
     }
 
     // Esperar a que todos los barcos crucen
@@ -53,6 +58,7 @@ int main() {
 
     // Detener el hilo de cambio de sentido si está activo
     if (modo == MODO_LETRERO) {
+        canal_activo = false;
         CEthread_join(&hilo_cambio_sentido, NULL);
     }
 

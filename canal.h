@@ -4,6 +4,7 @@
 #include "CEThreads.h"
 #include "barco.h"
 #include "calendarizacion.h"
+#include <stdbool.h>
 
 // Enum para los modos de control de flujo
 typedef enum {
@@ -23,6 +24,8 @@ extern AlgoritmoCalendarizacion algoritmo_actual; // Algoritmo de calendarizaci√
 extern CEmutex_t canal_mutex;
 extern CEmutex_t letrero_mutex;
 extern SistemaCalendarizacion sistema_cal; // Sistema de calendarizaci√≥n
+
+extern bool canal_activo;  // Agregar esto para controlar el estado del canal
 
 // Funciones para el manejo del canal
 void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoControlFlujo modo, int parametro_w_definido, AlgoritmoCalendarizacion algoritmo);

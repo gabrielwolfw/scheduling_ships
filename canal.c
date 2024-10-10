@@ -15,6 +15,7 @@ CEmutex_t canal_mutex;         // Mutex para sincronizar el acceso al canal
 CEmutex_t letrero_mutex;       // Mutex para sincronizar el cambio del letrero
 SistemaCalendarizacion sistema_cal; // Sistema de calendarización
 AlgoritmoCalendarizacion algoritmo_actual = FCFS; // Algoritmo de calendarización actual
+bool canal_activo = true;      // Estado del canal
 
 void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoControlFlujo modo, int parametro_w_definido, AlgoritmoCalendarizacion algoritmo) {
     sentido_actual = 0;  // Comienza de izquierda a derecha
@@ -34,6 +35,7 @@ void* cruzar_canal_letrero(void* arg) {
 
     CEmutex_lock(&canal_mutex);
 
+    // Espera hasta que sea la dirección correcta para cruzar
     while (barco->direccion != sentido_actual) {
         CEmutex_unlock(&canal_mutex);
         CEthread_sleep(1);
@@ -42,12 +44,26 @@ void* cruzar_canal_letrero(void* arg) {
 
     Barco* siguiente = obtener_siguiente_barco(&sistema_cal, sentido_actual, algoritmo_actual);
     if (siguiente != barco) {
+        // Si no es el siguiente barco, se debe volver a agregar a la cola
         agregar_a_cola(&sistema_cal, barco);
         CEmutex_unlock(&canal_mutex);
         return NULL;
     }
 
     int tiempo_total_cruce = longitud_canal / barco->velocidad;
+
+    // Calcular el tiempo restante para el cambio de letrero (Ejemplo: puedes mantener esta variable actualizada en otro hilo)
+    int tiempo_letrero_restante = tiempo_letrero; // Este valor debe ser el tiempo real que queda antes de que cambie el letrero.
+
+    // Verificar si el tiempo total de cruce es mayor que el tiempo restante del letrero
+    if (tiempo_total_cruce > tiempo_letrero_restante) {
+        printf("Barco %d no puede cruzar porque está fuera del tiempo de letrero. Esperando...\n", barco->id);
+        agregar_a_cola(&sistema_cal, barco); // Reagregar a la cola
+        CEmutex_unlock(&canal_mutex);
+        return NULL; // Salir para esperar
+    }
+
+    // Procede con el cruce si está dentro del tiempo permitido
     printf("Barco %d está cruzando de %s a %s tomará %d segundos\n",
            barco->id,
            barco->direccion == 0 ? "izquierda" : "derecha",
@@ -55,11 +71,17 @@ void* cruzar_canal_letrero(void* arg) {
            tiempo_total_cruce);
 
     CEthread_sleep(tiempo_total_cruce);
-    printf("Barco %d ha cruzado.\n", barco->id);
+    printf("Barco %d ha cruzado de %s a %s. Tiempo total de cruce: %d segundos.\n",
+           barco->id,
+           barco->direccion == 0 ? "izquierda" : "derecha",
+           barco->direccion == 0 ? "derecha" : "izquierda",
+           tiempo_total_cruce);
 
     CEmutex_unlock(&canal_mutex);
     return NULL;
 }
+
+
 
 void* cruzar_canal_equidad(void* arg) {
     Barco* barco = (Barco*) arg;
@@ -144,18 +166,24 @@ void* cruzar_canal(void* arg) {
 }
 
 void cambiar_sentido() {
-    while (1) {
-        CEthread_sleep(tiempo_letrero);
+    while (1) { // Bucle infinito
+        CEthread_sleep(tiempo_letrero); // Esperar el tiempo de letrero
 
+        // Asegúrate de usar el mutex si estás leyendo/modificando sentido_actual
         CEmutex_lock(&letrero_mutex);
 
         if (modo_actual == MODO_LETRERO) {
-            sentido_actual = 1 - sentido_actual;
+            sentido_actual = 1 - sentido_actual; // Cambiar sentido
             printf("Cambiando el sentido del canal a %s.\n",
                    sentido_actual == 0 ? "izquierda a derecha" : "derecha a izquierda");
         }
 
         CEmutex_unlock(&letrero_mutex);
+        
+        // Verifica si el canal sigue activo
+        if (!canal_activo) {
+            break; // Terminar el hilo si el canal ya no está activo
+        }
     }
 }
 

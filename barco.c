@@ -17,19 +17,19 @@ void agregar_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int lon
     // Ajustar la velocidad y deadline según el tipo de barco
     switch (tipo) {
         case NORMAL:
-            barcos[id].velocidad = 2.0; // Ejemplo: 2 unidades/segundo para barco normal
+            barcos[id].velocidad = 1.5; // Ejemplo: 1.5 unidades/segundo para barco normal
             barcos[id].deadline = 10;
             break;
         case PESQUERO:
-            barcos[id].velocidad = 1.5; // Ejemplo: 1.5 unidades/segundo para barco pesquero
+            barcos[id].velocidad = 2.0; // Ejemplo: 2.0 unidades/segundo para barco pesquero
             barcos[id].deadline = 8;
             break;
         case PATRULLA:
-            barcos[id].velocidad = 1.0; // Ejemplo: 1 unidad/segundo para barco patrullero
+            barcos[id].velocidad = 3.0; // Ejemplo: 3 unidad/segundo para barco patrullero
             barcos[id].deadline = 5;
             break;
         default:
-            barcos[id].velocidad = 2.0; // Valor por defecto
+            barcos[id].velocidad = 1.5; // Valor por defecto
             barcos[id].deadline = 10;
             break;
     }
