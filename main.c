@@ -15,7 +15,7 @@ int main() {
     int tiempo_letrero = 12;     // Tiempo en segundos para cambiar el letrero
     int longitud_canal = 10;     // Longitud del canal en unidades
     int parametro_w = 3;         // Número de barcos por dirección en modo equidad
-    AlgoritmoCalendarizacion algoritmo = TIEMPO_REAL;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
+    AlgoritmoCalendarizacion algoritmo = SJF;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
     ModoControlFlujo modo = MODO_LETRERO;
     int quantum = 5;  // Quantum para Round Robin
 

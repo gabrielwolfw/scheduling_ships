@@ -136,18 +136,19 @@ Barco *obtener_siguiente_barco_prioridad(SistemaCalendarizacion *sistema, int di
 // Algoritmo de SJF (Shortest Job First)
 Barco *obtener_siguiente_barco_sjf(SistemaCalendarizacion *sistema, int direccion_actual) {
     NodoBarco **cola = (direccion_actual == 0) ? &sistema->izquierda : &sistema->derecha;
-    if (*cola == NULL) return NULL;
+    if (*cola == NULL) return NULL;  // Si no hay barcos en la cola
 
     NodoBarco *actual = *cola;
     NodoBarco *menorTiempo = actual;
     NodoBarco *anterior = NULL, *anteriorMenor = NULL;
 
     while (actual != NULL) {
-        if (actual->barco->velocidad < menorTiempo->barco->velocidad) {  // Velocidad más alta significa menor tiempo
-            menorTiempo = actual;
-            anteriorMenor = anterior;
+        // Comparar el tiempo restante, no la velocidad
+        if (actual->barco->tiempo_restante < menorTiempo->barco->tiempo_restante) {
+            menorTiempo = actual;  // Actualizar el nodo con menor tiempo restante
+            anteriorMenor = anterior;  // Guardar el nodo anterior
         }
-        anterior = actual;
+        anterior = actual;  // Mover al siguiente nodo
         actual = actual->siguiente;
     }
 
@@ -155,14 +156,15 @@ Barco *obtener_siguiente_barco_sjf(SistemaCalendarizacion *sistema, int direccio
 
     // Eliminar barco seleccionado de la lista
     if (anteriorMenor == NULL) {
-        *cola = menorTiempo->siguiente;
+        *cola = menorTiempo->siguiente;  // Si el barco seleccionado es el primero
     } else {
-        anteriorMenor->siguiente = menorTiempo->siguiente;
+        anteriorMenor->siguiente = menorTiempo->siguiente;  // Enlazar el anterior con el siguiente
     }
 
-    free(menorTiempo);
-    return siguiente;
+    free(menorTiempo);  // Liberar la memoria del nodo
+    return siguiente;  // Devolver el barco seleccionado
 }
+
 
 Barco* obtener_siguiente_barco_tiempo_real(SistemaCalendarizacion *sistema, int direccion_actual) {
     NodoBarco **cola = (direccion_actual == 0) ? &sistema->izquierda : &sistema->derecha;
