@@ -108,8 +108,9 @@ Barco *obtener_siguiente_barco_prioridad(SistemaCalendarizacion *sistema, int di
     NodoBarco *mayorPrioridad = actual;
     NodoBarco *anterior = NULL, *anteriorMayor = NULL;
 
+    // Recorrer la lista buscando el barco con la mayor prioridad (mayor número)
     while (actual != NULL) {
-        if (actual->barco->tipo > mayorPrioridad->barco->tipo) {
+        if (actual->barco->prioridad > mayorPrioridad->barco->prioridad) {  // Comparar usando la prioridad
             mayorPrioridad = actual;
             anteriorMayor = anterior;
         }
@@ -121,12 +122,12 @@ Barco *obtener_siguiente_barco_prioridad(SistemaCalendarizacion *sistema, int di
 
     // Eliminar barco seleccionado de la lista
     if (anteriorMayor == NULL) {
-        *cola = mayorPrioridad->siguiente;
+        *cola = mayorPrioridad->siguiente;  // Si es el primero en la lista
     } else {
-        anteriorMayor->siguiente = mayorPrioridad->siguiente;
+        anteriorMayor->siguiente = mayorPrioridad->siguiente;  // Saltar el nodo mayorPrioridad
     }
 
-    free(mayorPrioridad);
+    free(mayorPrioridad);  // Liberar la memoria del nodo
     return siguiente;
 }
 

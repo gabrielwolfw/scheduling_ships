@@ -13,11 +13,12 @@ typedef enum {
 // Estructura de Barco
 typedef struct Barco {
     int id;
-    TipoBarco tipo;       // Para el algoritmo de prioridad
+    TipoBarco tipo;       // Elección del tipo de barco
     float velocidad;      // Para el algoritmo de SJF
     int direccion;        // 0: izquierda a derecha, 1: derecha a izquierda
     int tiempo_restante;  // Para Round Robin
     int deadline;         // Para el algoritmo de Tiempo Real
+    int prioridad;        // Para el algoritmo de prioridad
     struct Barco *siguiente; // Puntero para listas enlazadas (si es necesario en otras partes del sistema)
 } Barco;
 

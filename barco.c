@@ -12,18 +12,22 @@ void inicializar_barco(Barco* barco, int id, int direccion, TipoBarco tipo, int 
         case NORMAL:
             barco->velocidad = 1.5; // Ejemplo: 1.5 unidades/segundo para barco normal
             barco->deadline = 10;
+            barco->prioridad = 1;
             break;
         case PESQUERO:
             barco->velocidad = 2.0; // Ejemplo: 2.0 unidades/segundo para barco pesquero
             barco->deadline = 8;
+            barco->prioridad = 2;
             break;
         case PATRULLA:
             barco->velocidad = 3.0; // Ejemplo: 3 unidades/segundo para barco patrullero
             barco->deadline = 5;
+            barco->prioridad = 3;
             break;
         default:
             barco->velocidad = 1.5; // Valor por defecto
             barco->deadline = 10;
+            barco->prioridad = 1;
             break;
     }
 
@@ -51,6 +55,6 @@ void mostrar_info_barco(const Barco* barco) {
             break;
     }
 
-    printf("Barco ID: %d, Tipo: %s, Dirección: %s, Velocidad: %.2f unidades/segundo, Tiempo restante: %d, Deadline: %d\n",
-       barco->id, tipo_str, direccion_str, barco->velocidad, barco->tiempo_restante, barco->deadline);
+    printf("Barco ID: %d, Tipo: %s, Dirección: %s, Velocidad: %.2f unidades/segundo, Tiempo restante: %d, Deadline: %d, Prioridad: %d\n",
+       barco->id, tipo_str, direccion_str, barco->velocidad, barco->tiempo_restante, barco->deadline, barco->prioridad);
 }
