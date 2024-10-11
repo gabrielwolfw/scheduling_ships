@@ -45,13 +45,14 @@ void* cruzar_canal_letrero(void* arg) {
             CEmutex_lock(&canal_mutex);
         }
 
-        // Obtener el siguiente barco basado en el algoritmo de calendarización
+        // Obtener el siguiente barco basado en el algoritmo de calendarización seleccionado
         Barco* siguiente = obtener_siguiente_barco(&sistema_cal, sentido_actual, algoritmo_actual);
 
         if (siguiente != barco) {
-            // Si no es su turno, liberar el mutex y dormir un momento
+            // Si no es su turno, volver a agregar a la cola y liberar el mutex
+            agregar_a_cola(&sistema_cal, barco);
             CEmutex_unlock(&canal_mutex);
-            CEthread_sleep(1);
+            CEthread_sleep(1); // Dormir un momento antes de volver a intentar
             continue;
         }
 
@@ -77,6 +78,7 @@ void* cruzar_canal_letrero(void* arg) {
         CEmutex_lock(&canal_mutex);
         barco->tiempo_restante -= tiempo_this_turn;
 
+        // Si el barco terminó de cruzar, liberar el canal
         if (barco->tiempo_restante <= 0) {
             canal_ocupado = false;
             printf("Barco %d ha cruzado completamente.\n", barco->id);
@@ -86,10 +88,17 @@ void* cruzar_canal_letrero(void* arg) {
         }
 
         CEmutex_unlock(&canal_mutex);
+
+        printf("Sentido actual: %s. Barcos pendientes izquierda: %s, Barcos pendientes derecha: %s.\n",
+            sentido_actual == 0 ? "izquierda a derecha" : "derecha a izquierda",
+            sistema_cal.izquierda != NULL ? "Sí" : "No",
+            sistema_cal.derecha != NULL ? "Sí" : "No");
     }
 
     return NULL;
 }
+
+
 
 void* cruzar_canal_equidad(void* arg) {
     Barco* barco = (Barco*) arg;
@@ -174,15 +183,18 @@ void* cruzar_canal(void* arg) {
 }
 
 void* cambiar_sentido(void* arg) {
-     (void)arg;
+    (void)arg;
     while (canal_activo) {
         CEthread_sleep(tiempo_letrero);
 
         CEmutex_lock(&canal_mutex);
         if (!canal_ocupado) {
+            // Cambia de sentido solo si ningún barco está cruzando
             sentido_actual = 1 - sentido_actual;
             printf("Cambiando el sentido del canal a %s.\n",
                    sentido_actual == 0 ? "izquierda a derecha" : "derecha a izquierda");
+        } else {
+            printf("Canal ocupado, esperando para cambiar el sentido.\n");
         }
         CEmutex_unlock(&canal_mutex);
     }

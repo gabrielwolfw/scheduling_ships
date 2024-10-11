@@ -2,6 +2,7 @@
 #define CALENDARIZACION_H
 
 #include "barco.h"
+#include <stdbool.h>
 
 // Definición de un nodo para la lista enlazada de barcos
 typedef struct NodoBarco {
@@ -33,6 +34,9 @@ void agregar_a_cola(SistemaCalendarizacion *sistema, Barco *barco);
 
 // Remover un barco de la cola correspondiente
 void remover_de_cola(NodoBarco **cola, Barco *barco);
+
+// Función para verificar si hay barcos pendientes en el sistema
+bool hay_barcos_pendientes(SistemaCalendarizacion *sistema);
 
 // Función general para obtener el siguiente barco según el algoritmo de calendarización
 Barco *obtener_siguiente_barco(SistemaCalendarizacion *sistema, int direccion_actual, AlgoritmoCalendarizacion algoritmo);

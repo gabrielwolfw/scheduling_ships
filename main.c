@@ -12,10 +12,10 @@ void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longi
 
 int main() {
     // Configuración inicial del canal
-    int tiempo_letrero = 10;     // Tiempo en segundos para cambiar el letrero
+    int tiempo_letrero = 12;     // Tiempo en segundos para cambiar el letrero
     int longitud_canal = 10;     // Longitud del canal en unidades
     int parametro_w = 3;         // Número de barcos por dirección en modo equidad
-    AlgoritmoCalendarizacion algoritmo = PRIORIDAD;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
+    AlgoritmoCalendarizacion algoritmo = TIEMPO_REAL;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
     ModoControlFlujo modo = MODO_LETRERO;
     int quantum = 5;  // Quantum para Round Robin
 
@@ -44,7 +44,7 @@ int main() {
     crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
     crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
     crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
-    crear_barco(barcos, 5, 1, PATRULLA, longitud_canal);
+    crear_barco(barcos, 5, 1, PATRULLA, longitud_canal); // Barco 5, dirección derecha
     // Crear el hilo para el cambio de sentido del letrero
     CEthread_t hilo_cambio_sentido;
     if (modo == MODO_LETRERO) {

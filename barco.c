@@ -11,22 +11,22 @@ void inicializar_barco(Barco* barco, int id, int direccion, TipoBarco tipo, int 
     switch (tipo) {
         case NORMAL:
             barco->velocidad = 1.5; // Ejemplo: 1.5 unidades/segundo para barco normal
-            barco->deadline = 10;
+            barco->deadline = (int)(longitud_canal / barco->velocidad) + 2;
             barco->prioridad = 1;
             break;
         case PESQUERO:
             barco->velocidad = 2.0; // Ejemplo: 2.0 unidades/segundo para barco pesquero
-            barco->deadline = 8;
+            barco->deadline = (int)(longitud_canal / barco->velocidad) + 2;
             barco->prioridad = 2;
             break;
         case PATRULLA:
             barco->velocidad = 3.0; // Ejemplo: 3 unidades/segundo para barco patrullero
-            barco->deadline = 5;
+            barco->deadline = (int)(longitud_canal / barco->velocidad) + 2;
             barco->prioridad = 3;
             break;
         default:
             barco->velocidad = 1.5; // Valor por defecto
-            barco->deadline = 10;
+            barco->deadline = (int)(longitud_canal / barco->velocidad) + 2;
             barco->prioridad = 1;
             break;
     }
