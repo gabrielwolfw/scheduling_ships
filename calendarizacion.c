@@ -28,27 +28,6 @@ void agregar_a_cola(SistemaCalendarizacion *sistema, Barco *barco) {
     }
 }
 
-// Remover un barco de la cola
-void remover_de_cola(NodoBarco **cola, Barco *barco) {
-    NodoBarco *actual = *cola;
-    NodoBarco *anterior = NULL;
-
-    while (actual != NULL && actual->barco != barco) {
-        anterior = actual;
-        actual = actual->siguiente;
-    }
-
-    if (actual == NULL) return; // No se encontró el barco
-
-    if (anterior == NULL) {
-        *cola = actual->siguiente; // Eliminar el primer nodo
-    } else {
-        anterior->siguiente = actual->siguiente;
-    }
-
-    free(actual);
-}
-
 // Función general para obtener el siguiente barco según el algoritmo seleccionado
 Barco *obtener_siguiente_barco(SistemaCalendarizacion *sistema, int direccion_actual, AlgoritmoCalendarizacion algoritmo) {
     switch (algoritmo) {
@@ -194,12 +173,10 @@ Barco* obtener_siguiente_barco_tiempo_real(SistemaCalendarizacion *sistema, int 
     }
 
     free(menorDeadline);  // Liberar solo el nodo, no el barco
-
     return siguiente;  // Retornar el barco seleccionado
 }
 
-
-
+// Actualizar si hay barcos pendientes en el sistema
 bool hay_barcos_pendientes(SistemaCalendarizacion *sistema) {
     return (sistema->izquierda != NULL || sistema->derecha != NULL);
 }

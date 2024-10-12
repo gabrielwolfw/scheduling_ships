@@ -1,5 +1,6 @@
 #include "canal.h"
 #include "barco.h"
+#include "CEThreads.h"
 #include <stdio.h>
 
 #define NUM_BARCOS 6  // Número de barcos para la prueba
@@ -12,10 +13,10 @@ void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longi
 
 int main() {
     // Configuración inicial del canal
-    int tiempo_letrero = 12;     // Tiempo en segundos para cambiar el letrero
+    int tiempo_letrero = 10;     // Tiempo en segundos para cambiar el letrero
     int longitud_canal = 10;     // Longitud del canal en unidades
     int parametro_w = 3;         // Número de barcos por dirección en modo equidad
-    AlgoritmoCalendarizacion algoritmo = SJF;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
+    AlgoritmoCalendarizacion algoritmo = ROUND_ROBIN;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
     ModoControlFlujo modo = MODO_LETRERO;
     int quantum = 5;  // Quantum para Round Robin
 
@@ -27,12 +28,12 @@ int main() {
     printf("Configuración del canal:\n");
     printf("- Tiempo de letrero: %d segundos\n", tiempo_letrero);
     printf("- Longitud del canal: %d unidades\n", longitud_canal);
-    printf("- Algoritmo de calendarización: %s\n", 
-           algoritmo == ROUND_ROBIN ? "ROUND_ROBIN" : 
-           algoritmo == FCFS ? "FCFS" : 
-           algoritmo == SJF ? "SJF" : 
-           algoritmo == PRIORIDAD ? "PRIORIDAD" : 
-           algoritmo == TIEMPO_REAL ? "TIEMPO_REAL" : "DESCONOCIDO");
+    printf("- Algoritmo de calendarización: %s\n",
+            algoritmo == ROUND_ROBIN ? "ROUND_ROBIN" :
+            algoritmo == FCFS ? "FCFS" :
+            algoritmo == SJF ? "SJF" :
+            algoritmo == PRIORIDAD ? "PRIORIDAD" :
+            algoritmo == TIEMPO_REAL ? "TIEMPO_REAL" : "DESCONOCIDO");
     printf("- Quantum (para Round Robin): %d segundos\n", quantum);
 
     Barco barcos[NUM_BARCOS];
@@ -44,12 +45,13 @@ int main() {
     crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
     crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
     crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
-    crear_barco(barcos, 5, 1, PATRULLA, longitud_canal); // Barco 5, dirección derecha
+    crear_barco(barcos, 5, 1, PATRULLA, longitud_canal);  // Barco 5, dirección derecha
+
     // Crear el hilo para el cambio de sentido del letrero
     CEthread_t hilo_cambio_sentido;
     if (modo == MODO_LETRERO) {
         canal_activo = true;
-        if (CEthread_create(&hilo_cambio_sentido, (void*)cambiar_sentido, NULL) != 0) {
+        if (CEthread_create(&hilo_cambio_sentido, (void*)cambiar_sentido, NULL, -1) != 0) {
             fprintf(stderr, "Error al crear hilo para cambio de sentido\n");
             return 1;
         }
@@ -58,7 +60,7 @@ int main() {
     // Procesar el cruce de los barcos en el canal
     CEthread_t hilos_barcos[NUM_BARCOS];
     for (int i = 0; i < NUM_BARCOS; i++) {
-        if (CEthread_create(&hilos_barcos[i], cruzar_canal, &barcos[i]) != 0) {
+        if (CEthread_create(&hilos_barcos[i], cruzar_canal, &barcos[i], barcos[i].id) != 0) {
             fprintf(stderr, "Error al crear hilo para el barco %d\n", i);
             return 1;
         }
@@ -66,7 +68,9 @@ int main() {
 
     // Esperar a que todos los barcos crucen
     for (int i = 0; i < NUM_BARCOS; i++) {
-        CEthread_join(&hilos_barcos[i], NULL);
+        int barco_id_cruzado;
+        CEthread_join(&hilos_barcos[i], &barco_id_cruzado);
+        printf("El barco con ID %d ha cruzado el canal\n", barco_id_cruzado);
     }
 
     // Detener el hilo de cambio de sentido si está activo

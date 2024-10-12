@@ -30,7 +30,7 @@ extern bool canal_activo;  // Agregar esto para controlar el estado del canal
 // Funciones para el manejo del canal
 void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoControlFlujo modo, int parametro_w_definido, AlgoritmoCalendarizacion algoritmo);
 void* cruzar_canal(void* arg);  // Función general para que un barco cruce el canal
-void* cambiar_sentido(void* arg);  // Cambia el sentido del letrero
+void* cambiar_sentido();  // Cambia el sentido del letrero
 void agregar_barco_al_canal(Barco* barco);
 
 // Funciones específicas para cada modo de control de flujo

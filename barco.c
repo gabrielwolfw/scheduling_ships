@@ -10,7 +10,7 @@ void inicializar_barco(Barco* barco, int id, int direccion, TipoBarco tipo, int 
     // Ajustar la velocidad y deadline según el tipo de barco
     switch (tipo) {
         case NORMAL:
-            barco->velocidad = 1.5; // Ejemplo: 1.5 unidades/segundo para barco normal
+            barco->velocidad = 1.0; // Ejemplo: 1.5 unidades/segundo para barco normal
             barco->deadline = (int)(longitud_canal / barco->velocidad) + 2;
             barco->prioridad = 1;
             break;
@@ -25,7 +25,7 @@ void inicializar_barco(Barco* barco, int id, int direccion, TipoBarco tipo, int 
             barco->prioridad = 3;
             break;
         default:
-            barco->velocidad = 1.5; // Valor por defecto
+            barco->velocidad = 1.0; // Valor por defecto
             barco->deadline = (int)(longitud_canal / barco->velocidad) + 2;
             barco->prioridad = 1;
             break;
