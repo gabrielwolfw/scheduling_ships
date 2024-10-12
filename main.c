@@ -1,58 +1,85 @@
 #include "canal.h"
 #include "barco.h"
-#include "calendarizacion.h"
 #include "CEThreads.h"
 #include <stdio.h>
 
+#define NUM_BARCOS 6  // Número de barcos para la prueba
+
+void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal) {
+    inicializar_barco(&barcos[id], id, direccion, tipo, longitud_canal);
+    mostrar_info_barco(&barcos[id]);
+    agregar_barco_al_canal(&barcos[id]);
+}
+
 int main() {
-    ColaBarcos cola;  // Crear la cola de barcos
-    inicializar_cola(&cola);  // Inicializar la cola de barcos
+    // Configuración inicial del canal
+    int tiempo_letrero = 10;     // Tiempo en segundos para cambiar el letrero
+    int longitud_canal = 10;     // Longitud del canal en unidades
+    int parametro_w = 3;         // Número de barcos por dirección en modo equidad
+    AlgoritmoCalendarizacion algoritmo = ROUND_ROBIN;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
+    ModoControlFlujo modo = MODO_LETRERO;
+    int quantum = 5;  // Quantum para Round Robin
 
-    Barco barcos[MAX_BARCOS];  // Array para almacenar barcos
-    int contador_barcos = 0;   // Contador de barcos generados
-    CEthread_t hilos[MAX_BARCOS];  // Crear hilos para cada barco
+    // Inicialización del canal
+    iniciar_canal(tiempo_letrero, longitud_canal, modo, parametro_w, algoritmo);
+    sistema_cal.quantum = quantum;  // Establecer el quantum para Round Robin
 
-    // Inicializar el canal con el modo de control de flujo
-    iniciar_canal(5, 10, MODO_LETRERO, 3);  // Longitud del canal es de 10 unidades, tiempo del letrero es de 5 segundos
-    printf("Canal iniciado con longitud de %d unidades y cambio de letrero cada %d segundos.\n", longitud_canal, tiempo_letrero);
+    // Mostrar configuración del canal
+    printf("Configuración del canal:\n");
+    printf("- Tiempo de letrero: %d segundos\n", tiempo_letrero);
+    printf("- Longitud del canal: %d unidades\n", longitud_canal);
+    printf("- Algoritmo de calendarización: %s\n",
+            algoritmo == ROUND_ROBIN ? "ROUND_ROBIN" :
+            algoritmo == FCFS ? "FCFS" :
+            algoritmo == SJF ? "SJF" :
+            algoritmo == PRIORIDAD ? "PRIORIDAD" :
+            algoritmo == TIEMPO_REAL ? "TIEMPO_REAL" : "DESCONOCIDO");
+    printf("- Quantum (para Round Robin): %d segundos\n", quantum);
 
-    // Agregar barcos a la cola con diferentes configuraciones
-    printf("Agregando barcos a la cola...\n");
-    agregar_barco(barcos, contador_barcos++, 0, NORMAL);  // Barco 0, izquierda a derecha, normal
-    agregar_a_cola(&cola, &barcos[0]);
-    printf("Barco 0 agregado: dirección izquierda a derecha, tipo NORMAL.\n");
+    Barco barcos[NUM_BARCOS];
+    printf("\nAgregando barcos a la cola...\n");
 
-    agregar_barco(barcos, contador_barcos++, 1, PESQUERO);  // Barco 1, derecha a izquierda, pesquero
-    agregar_a_cola(&cola, &barcos[1]);
-    printf("Barco 1 agregado: dirección derecha a izquierda, tipo PESQUERO.\n");
+    // Barcos de prueba con diferentes tipos
+    crear_barco(barcos, 0, 1, NORMAL, longitud_canal);    // Barco 0, dirección derecha
+    crear_barco(barcos, 1, 1, PESQUERO, longitud_canal);  // Barco 1, dirección derecha
+    crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
+    crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
+    crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
+    crear_barco(barcos, 5, 1, PATRULLA, longitud_canal);  // Barco 5, dirección derecha
 
-    agregar_barco(barcos, contador_barcos++, 0, PATRULLA);  // Barco 2, izquierda a derecha, patrulla
-    agregar_a_cola(&cola, &barcos[2]);
-    printf("Barco 2 agregado: dirección izquierda a derecha, tipo PATRULLA.\n");
-
-    // Crear el hilo para manejar el cambio de sentido del letrero
-    printf("Iniciando el cambio de letrero en un hilo separado...\n");
-    CEthread_t hilo_letrero;
-    CEthread_create(&hilo_letrero, (void*)cambiar_sentido, NULL);
-
-    // Procesar barcos en el canal según el algoritmo de calendarización (FCFS en este caso)
-    while (cola.count > 0) {
-        // Obtener el siguiente barco según el algoritmo de calendarización
-        Barco* siguiente_barco = obtener_siguiente_barco_rr(&cola);
-        if (siguiente_barco) {
-            printf("El siguiente barco en cruzar es el Barco %d (Dirección: %s).\n",
-                   siguiente_barco->id,
-                   siguiente_barco->direccion == 0 ? "izquierda a derecha" : "derecha a izquierda");
-
-            // Crear un hilo para cruzar el canal
-            CEthread_create(&hilos[siguiente_barco->id], cruzar_canal, (void*) siguiente_barco);
-            CEthread_join(&hilos[siguiente_barco->id], NULL);  // Esperar a que el barco cruce
+    // Crear el hilo para el cambio de sentido del letrero
+    CEthread_t hilo_cambio_sentido;
+    if (modo == MODO_LETRERO) {
+        canal_activo = true;
+        if (CEthread_create(&hilo_cambio_sentido, (void*)cambiar_sentido, NULL, -1) != 0) {
+            fprintf(stderr, "Error al crear hilo para cambio de sentido\n");
+            return 1;
         }
     }
 
-    // Finalizar el hilo del letrero cuando no haya más barcos
-    printf("No hay más barcos en la cola, finalizando hilo del letrero...\n");
-    CEthread_end(&hilo_letrero);
+    // Procesar el cruce de los barcos en el canal
+    CEthread_t hilos_barcos[NUM_BARCOS];
+    for (int i = 0; i < NUM_BARCOS; i++) {
+        if (CEthread_create(&hilos_barcos[i], cruzar_canal, &barcos[i], barcos[i].id) != 0) {
+            fprintf(stderr, "Error al crear hilo para el barco %d\n", i);
+            return 1;
+        }
+    }
+
+    // Esperar a que todos los barcos crucen
+    for (int i = 0; i < NUM_BARCOS; i++) {
+        int barco_id_cruzado;
+        CEthread_join(&hilos_barcos[i], &barco_id_cruzado);
+        printf("El barco con ID %d ha cruzado el canal\n", barco_id_cruzado);
+    }
+
+    // Detener el hilo de cambio de sentido si está activo
+    if (modo == MODO_LETRERO) {
+        canal_activo = false;
+        CEthread_join(&hilo_cambio_sentido, NULL);
+    }
+
+    printf("\nSimulación completada. Todos los barcos han cruzado el canal.\n");
 
     return 0;
 }
