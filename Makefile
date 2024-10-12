@@ -23,4 +23,11 @@ run: $(TARGET)
 # Limpieza de archivos generados
 clean:
 	@echo "Cleaning up..."
-	@rm -f $(TARGET)
+	@rm -f $(TARGET) hardware/scriptComandoIndividual *.o
+
+# Comandos de ejecucion
+hardware:
+	@gcc -o hardware/scriptComandoIndividual hardware/scriptComandoIndividual.c canal.c barco.c CEThreads.c calendarizacion.c
+
+runHardware:
+	@./hardware/scriptComandoIndividual

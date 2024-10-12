@@ -9,8 +9,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <errno.h>
-//#include <linux/sched.h>
-#include <sched.h>
+#include <linux/sched.h>
+//#include <sched.h>
 #include <sys/syscall.h>
 #include <semaphore.h>
 
