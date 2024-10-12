@@ -62,13 +62,33 @@
 #include <fcntl.h>      // Para O_RDWR
 #include <termios.h>    // Para struct termios
 #include <errno.h>
-/*#include "canal.h"
-#include "barco.h"
-#include "calendarizacion.h"
-#include "CEThreads.h"
-#include <stdio.h>*/
+#include "../canal.h"
+#include "../barco.h"
+#include "../calendarizacion.h"
+#include "../CEThreads.h"
+#include <stdio.h>
 
 #define SERIAL_PORT "/dev/cu.usbmodem1414101"  // esto se cambia por el puerto serie donde se conecte el arduino
+#define NUM_BARCOS 5  // Número de barcos para la prueba
+void* chequearSentido(void* arg){
+    int port = (int)arg;
+    while(1){
+        if(sentido_actual){
+            char command[] = "MOTOR LEFT\n";
+            write(port, command, strlen(command));
+        }
+        else{
+            char command[] = "MOTOR RIGHT\n";
+            write(port, command, strlen(command));
+        }
+    }
+}
+
+void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal) {
+    inicializar_barco(&barcos[id], id, direccion, tipo, longitud_canal);
+    mostrar_info_barco(&barcos[id]);
+    agregar_barco_al_canal(&barcos[id]);
+}
 
 int main() {
     int serial_port = open(SERIAL_PORT, O_RDWR);
@@ -130,40 +150,56 @@ int main() {
 
     // Agregar una pausa de 2 segundos para que el Arduino se reinicie
     sleep(2);
-/*
-     ColaBarcos cola;  // Crear la cola de barcos
-    inicializar_cola(&cola);  // Inicializar la cola de barcos
 
-    Barco barcos[MAX_BARCOS];  // Array para almacenar barcos
-    int contador_barcos = 0;   // Contador de barcos generados
-    CEthread_t hilos[MAX_BARCOS];  // Crear hilos para cada barco
+    // Configuración inicial del canal
+    int tiempo_letrero = 5;     // Tiempo en segundos para cambiar el letrero
+    int longitud_canal = 10;     // Longitud del canal en unidades
+    int parametro_w = 3;         // Número de barcos por dirección en modo equidad
+    AlgoritmoCalendarizacion algoritmo = ROUND_ROBIN;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
+    ModoControlFlujo modo = MODO_LETRERO;
+    int quantum = 5;  // Quantum para Round Robin
 
-    // Inicializar el canal con el modo de control de flujo
-    iniciar_canal(5, 10, MODO_LETRERO, 3);  // Longitud del canal es de 10 unidades, tiempo del letrero es de 5 segundos
-    printf("Canal iniciado con longitud de %d unidades y cambio de letrero cada %d segundos.\n", longitud_canal, tiempo_letrero);
+    // Inicialización del canal
+    iniciar_canal(tiempo_letrero, longitud_canal, modo, parametro_w, algoritmo);
+    sistema_cal.quantum = quantum;  // Establecer el quantum para Round Robin
 
-    // Agregar barcos a la cola con diferentes configuraciones
-    printf("Agregando barcos a la cola...\n");
-    agregar_barco(barcos, contador_barcos++, 0, NORMAL);  // Barco 0, izquierda a derecha, normal
-    agregar_a_cola(&cola, &barcos[0]);
+    // Mostrar configuración del canal
+    printf("Configuración del canal:\n");
+    printf("- Tiempo de letrero: %d segundos\n", tiempo_letrero);
+    printf("- Longitud del canal: %d unidades\n", longitud_canal);
+    printf("- Algoritmo de calendarización: %s\n", 
+           algoritmo == ROUND_ROBIN ? "ROUND_ROBIN" : 
+           algoritmo == FCFS ? "FCFS" : 
+           algoritmo == SJF ? "SJF" : 
+           algoritmo == PRIORIDAD ? "PRIORIDAD" : 
+           algoritmo == TIEMPO_REAL ? "TIEMPO_REAL" : "DESCONOCIDO");
+    printf("- Quantum (para Round Robin): %d segundos\n", quantum);
 
-    printf("Barco 0 agregado: dirección izquierda a derecha, tipo NORMAL.\n");*/
+    Barco barcos[NUM_BARCOS];
+    printf("\nAgregando barcos a la cola...\n");
+
+    // Barcos de prueba con diferentes tipos
+    crear_barco(barcos, 0, 1, NORMAL, longitud_canal);    // Barco 0, dirección derecha
     char command[] = "GENERATE NORMAL LEFT1\n";
-    char command2[] = "GENERATE NORMAL RIGHT2\n";
-    char command3[] = "MOTOR LEFT\n";
-    // Leer y descartar datos iniciales
-    char initial_buf[256];
-    int num_bytes = read(serial_port, &initial_buf, sizeof(initial_buf));
-
-    // Enviar un comando al Arduino
-    
     write(serial_port, command, strlen(command));
     usleep(100000);
-    write(serial_port, command2, strlen(command2));
-    usleep(100000);
-    write(serial_port, command3, strlen(command3));
-    printf("Comando enviado: %s", command);
+    //crear_barco(barcos, 1, 1, PESQUERO, longitud_canal);  // Barco 1, dirección derecha
+   // crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
+   // crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
+    //crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
 
+    // Crear el hilo para el cambio de sentido del letrero
+    CEthread_t hilo_cambio_sentido;
+    if (modo == MODO_LETRERO) {
+        canal_activo = true;
+        if (CEthread_create(&hilo_cambio_sentido, (void*)cambiar_sentido, NULL) != 0) {
+            fprintf(stderr, "Error al crear hilo para cambio de sentido\n");
+            return 1;
+        }
+    }
+    
+    CEthread_t monitorear_sentido;
+    CEthread_create(&monitorear_sentido,(void*)chequearSentido,(void*)serial_port);
     // Leer la respuesta del Arduino
     char read_buf[256];
     memset(&read_buf, '\0', sizeof(read_buf));
