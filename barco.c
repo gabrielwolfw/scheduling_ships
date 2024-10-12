@@ -1,31 +1,34 @@
 #include "barco.h"
-#include "canal.h"
 #include <stdio.h>
 
-// Función para agregar un barco
-void agregar_barco(Barco* barcos, int id, int direccion, TipoBarco tipo) {
-    barcos[id].id = id;
-    barcos[id].direccion = direccion;
+// Función para inicializar un barco con los valores dados
+void inicializar_barco(Barco* barco, int id, int direccion, TipoBarco tipo, int longitud_canal) {
+    barco->id = id;
+    barco->direccion = direccion;
+    barco->tipo = tipo;
 
-    // Ajustar la velocidad según el tipo de barco
+    // Ajustar la velocidad y deadline según el tipo de barco
     switch (tipo) {
         case NORMAL:
-            barcos[id].velocidad = 2.0; // Ejemplo: 2 unidades/segundo para barco normal
-            barcos[id].tipo = NORMAL;  // Asignar el tipo de barco
+            barco->velocidad = 1.5; // Ejemplo: 1.5 unidades/segundo para barco normal
+            barco->deadline = 10;
             break;
         case PESQUERO:
-            barcos[id].velocidad = 1.5; // Ejemplo: 1.5 unidades/segundo para barco pesquero
-            barcos[id].tipo = PESQUERO; // Asignar el tipo de barco
+            barco->velocidad = 2.0; // Ejemplo: 2.0 unidades/segundo para barco pesquero
+            barco->deadline = 8;
             break;
         case PATRULLA:
-            barcos[id].velocidad = 1.0; // Ejemplo: 1 unidad/segundo para barco patrullero
-            barcos[id].tipo = PATRULLA; // Asignar el tipo de barco
+            barco->velocidad = 3.0; // Ejemplo: 3 unidades/segundo para barco patrullero
+            barco->deadline = 5;
             break;
         default:
-            barcos[id].velocidad = 2.0; // Valor por defecto
-            barcos[id].tipo = NORMAL;  // Asignar tipo por defecto
+            barco->velocidad = 1.5; // Valor por defecto
+            barco->deadline = 10;
             break;
     }
+
+    // Inicializar el tiempo restante
+    barco->tiempo_restante = (int)(longitud_canal / barco->velocidad);
 }
 
 // Función para mostrar información del barco
@@ -48,6 +51,6 @@ void mostrar_info_barco(const Barco* barco) {
             break;
     }
 
-    printf("Barco ID: %d, Tipo: %s, Dirección: %s, Velocidad: %.2f unidades/segundo\n",
-           barco->id, tipo_str, direccion_str, barco->velocidad);
+    printf("Barco ID: %d, Tipo: %s, Dirección: %s, Velocidad: %.2f unidades/segundo, Tiempo restante: %d, Deadline: %d\n",
+       barco->id, tipo_str, direccion_str, barco->velocidad, barco->tiempo_restante, barco->deadline);
 }
