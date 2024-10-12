@@ -64,7 +64,7 @@
 #include <termios.h>    // Para struct termios
 #include <errno.h>
 
-#define SERIAL_PORT "/dev/cu.usbmodem1424101"  //  esto se cambia por el puerto serie donde se conecte el arduino
+#define SERIAL_PORT "/dev/cu.usbmodem1414101"  //  esto se cambia por el puerto serie donde se conecte el arduino
 
 int main() {
     int serial_port = open(SERIAL_PORT, O_RDWR);

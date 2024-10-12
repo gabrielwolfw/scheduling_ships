@@ -62,8 +62,13 @@
 #include <fcntl.h>      // Para O_RDWR
 #include <termios.h>    // Para struct termios
 #include <errno.h>
+/*#include "canal.h"
+#include "barco.h"
+#include "calendarizacion.h"
+#include "CEThreads.h"
+#include <stdio.h>*/
 
-#define SERIAL_PORT "/dev/cu.usbmodem1424101"  // esto se cambia por el puerto serie donde se conecte el arduino
+#define SERIAL_PORT "/dev/cu.usbmodem1414101"  // esto se cambia por el puerto serie donde se conecte el arduino
 
 int main() {
     int serial_port = open(SERIAL_PORT, O_RDWR);
@@ -125,15 +130,38 @@ int main() {
 
     // Agregar una pausa de 2 segundos para que el Arduino se reinicie
     sleep(2);
+/*
+     ColaBarcos cola;  // Crear la cola de barcos
+    inicializar_cola(&cola);  // Inicializar la cola de barcos
 
+    Barco barcos[MAX_BARCOS];  // Array para almacenar barcos
+    int contador_barcos = 0;   // Contador de barcos generados
+    CEthread_t hilos[MAX_BARCOS];  // Crear hilos para cada barco
+
+    // Inicializar el canal con el modo de control de flujo
+    iniciar_canal(5, 10, MODO_LETRERO, 3);  // Longitud del canal es de 10 unidades, tiempo del letrero es de 5 segundos
+    printf("Canal iniciado con longitud de %d unidades y cambio de letrero cada %d segundos.\n", longitud_canal, tiempo_letrero);
+
+    // Agregar barcos a la cola con diferentes configuraciones
+    printf("Agregando barcos a la cola...\n");
+    agregar_barco(barcos, contador_barcos++, 0, NORMAL);  // Barco 0, izquierda a derecha, normal
+    agregar_a_cola(&cola, &barcos[0]);
+
+    printf("Barco 0 agregado: dirección izquierda a derecha, tipo NORMAL.\n");*/
+    char command[] = "GENERATE NORMAL LEFT1\n";
+    char command2[] = "GENERATE NORMAL RIGHT2\n";
+    char command3[] = "MOTOR LEFT\n";
     // Leer y descartar datos iniciales
     char initial_buf[256];
     int num_bytes = read(serial_port, &initial_buf, sizeof(initial_buf));
 
     // Enviar un comando al Arduino
-    char command[] = "GENERATE PATRULLA LEFT1\n";
+    
     write(serial_port, command, strlen(command));
-
+    usleep(100000);
+    write(serial_port, command2, strlen(command2));
+    usleep(100000);
+    write(serial_port, command3, strlen(command3));
     printf("Comando enviado: %s", command);
 
     // Leer la respuesta del Arduino
