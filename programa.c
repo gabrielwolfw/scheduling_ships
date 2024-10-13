@@ -2,17 +2,35 @@
 #include "barco.h"
 #include "CEThreads.h"
 #include <stdio.h>
-
+#include "configuracion.h"
 #define NUM_BARCOS 6  // Número de barcos para la prueba
 
-void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal) {
+void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal, ConfiguracionCanal *config) {
+    // Inicializar el barco con los valores según el tipo
     inicializar_barco(&barcos[id], id, direccion, tipo, longitud_canal);
+
+    // Asignar la velocidad según el tipo de barco
+    switch (tipo) {
+        case NORMAL:
+            barcos[id].velocidad = config->velocidad_normal;
+            break;
+        case PESQUERO:
+            barcos[id].velocidad = config->velocidad_pesquero;
+            break;
+        case PATRULLA:
+            barcos[id].velocidad = config->velocidad_patrulla;
+            break;
+        default:
+            printf("Tipo de barco desconocido\n");
+            break;
+    }
+
     mostrar_info_barco(&barcos[id]);
     agregar_barco_al_canal(&barcos[id]);
 }
 
 
-void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitud_canal) {
+void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitud_canal, ConfiguracionCanal *config) {
     char opcion;
 
     while (1) {
@@ -55,42 +73,40 @@ void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitu
         }
 
         // Crear el barco y agregarlo al sistema
-        crear_barco(barcos, *contador_barcos, direccion, tipo, longitud_canal);
+        crear_barco(barcos, *contador_barcos, direccion, tipo, longitud_canal, config);
         (*contador_barcos)++;  // Incrementar el contador de barcos
     }
 }
 
 int main() {
-    // Configuración inicial del canal
-    int tiempo_letrero = 20;     // Tiempo en segundos para cambiar el letrero
-    int longitud_canal = 10;     // Longitud del canal en unidades
-    int parametro_w = 3;         // Número de barcos por dirección en modo equidad
-    AlgoritmoCalendarizacion algoritmo = ROUND_ROBIN;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
-    ModoControlFlujo modo = MODO_LETRERO;
-    int quantum = 5;  // Quantum para Round Robin
+    ConfiguracionCanal config;
+    leer_configuracion("config_canal.txt", &config);  // Leer el archivo de configuración
 
-    // Inicialización del canal
-    iniciar_canal(tiempo_letrero, longitud_canal, modo, parametro_w, algoritmo);
-    sistema_cal.quantum = quantum;  // Establecer el quantum para Round Robin
+    // Obtener el modo de control de flujo y el algoritmo de calendarización
+    ModoControlFlujo modo = obtener_modo_control_flujo(config.control_flujo);
+    AlgoritmoCalendarizacion algoritmo = obtener_algoritmo_calendarizacion(config.algoritmo);
+
+    // Inicializar el canal con los parámetros del archivo de configuración
+    iniciar_canal(config.tiempo_letrero, config.longitud_canal, modo, config.parametro_w, algoritmo);
+    sistema_cal.quantum = config.quantum;  // Establecer el quantum para Round Robin
 
     // Mostrar configuración del canal
     printf("Configuración del canal:\n");
-    printf("- Tiempo de letrero: %d segundos\n", tiempo_letrero);
-    printf("- Longitud del canal: %d unidades\n", longitud_canal);
-    printf("- Algoritmo de calendarización: %s\n",
-            algoritmo == ROUND_ROBIN ? "ROUND_ROBIN" :
-            algoritmo == FCFS ? "FCFS" :
-            algoritmo == SJF ? "SJF" :
-            algoritmo == PRIORIDAD ? "PRIORIDAD" :
-            algoritmo == TIEMPO_REAL ? "TIEMPO_REAL" : "DESCONOCIDO");
-    printf("- Quantum (para Round Robin): %d segundos\n", quantum);
+    printf("- Modo de control de flujo: %s\n", config.control_flujo);
+    printf("- Longitud del canal: %d unidades\n", config.longitud_canal);
+    printf("- Velocidad barco Normal: %.2f\n", config.velocidad_normal);
+    printf("- Velocidad barco Pesquero: %.2f\n", config.velocidad_pesquero);
+    printf("- Velocidad barco Patrulla: %.2f\n", config.velocidad_patrulla);
+    printf("- Algoritmo de calendarización: %s\n", config.algoritmo);
+    printf("- Quantum (si aplica): %d\n", config.quantum);
 
     Barco barcos[NUM_BARCOS];
     int contador_barcos = 0;  // Inicializar contador de barcos
-    printf("\nAgregando barcos a la cola...\n");
-    agregar_barcos_por_teclado(barcos, &contador_barcos, longitud_canal);
 
-    // Crear el hilo para el cambio de sentido del letrero
+    printf("\nAgregando barcos a la cola...\n");
+    agregar_barcos_por_teclado(barcos, &contador_barcos, config.longitud_canal, &config);
+
+    // Crear el hilo para el cambio de sentido del letrero si aplica
     CEthread_t hilo_cambio_sentido;
     if (modo == MODO_LETRERO) {
         canal_activo = true;
