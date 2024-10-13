@@ -13,7 +13,7 @@ void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longi
 
 int main() {
     // Configuración inicial del canal
-    int tiempo_letrero = 10;     // Tiempo en segundos para cambiar el letrero
+    int tiempo_letrero = 20;     // Tiempo en segundos para cambiar el letrero
     int longitud_canal = 10;     // Longitud del canal en unidades
     int parametro_w = 3;         // Número de barcos por dirección en modo equidad
     AlgoritmoCalendarizacion algoritmo = ROUND_ROBIN;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario

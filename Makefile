@@ -2,7 +2,7 @@
 TARGET = simulacion
 
 # Archivos fuente
-SRC = main.c CEThreads.c calendarizacion.c barco.c canal.c
+SRC = programa.c CEThreads.c calendarizacion.c barco.c canal.c
 
 # Opciones de compilación
 CFLAGS = -Wall -Wextra
