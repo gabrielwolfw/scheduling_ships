@@ -80,9 +80,12 @@ void* enviar_commando(char* comando, void* arg){
 }
 
 int leds[6] = {1, 2, 3, 4, 5, 6};
+
 void* chequear_colas(void*arg){
     int* lista_cruzados = obtener_cruzados();
     printf("%s \n", "Entrando a chequear cola");
+    printf("Primer elemento: %d", lista_cruzados[0]);
+    printf(sizeof(lista_cruzados));
     for(int i; i < 6; i++){
         if(lista_cruzados[i] != 9){
             char buff[13];
@@ -268,7 +271,6 @@ int main() {
     printf("\nSimulación completada. Todos los barcos han cruzado el canal.\n");
     
     CEthread_t monitorear_sentido;
-    
     CEthread_create(&monitorear_sentido,(void*)chequearSentido,(void*)serial_port, 0);
     // Procesar el cruce de los barcos en el canal
     CEthread_t hilos_barcos[NUM_BARCOS];
@@ -278,9 +280,10 @@ int main() {
             return 1;
         }
     }
-    CEthread_t monitorear_Cruce;
 
+    CEthread_t monitorear_Cruce;
     CEthread_create(&monitorear_Cruce,(void*) chequear_colas,(void *) serial_port, 0);
+
      // Esperar a que todos los barcos crucen
     for (int i = 0; i < NUM_BARCOS; i++) {
         int barco_id_cruzado;
