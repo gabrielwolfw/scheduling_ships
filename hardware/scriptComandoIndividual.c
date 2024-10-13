@@ -235,7 +235,7 @@ int main() {
     CEthread_t hilo_cambio_sentido;
     if (modo == MODO_LETRERO) {
         canal_activo = true;
-        if (CEthread_create(&hilo_cambio_sentido, (void*)cambiar_sentido, NULL) != 0) {
+        if (CEthread_create(&hilo_cambio_sentido, (void*)cambiar_sentido, NULL, 0) != 0) {
             fprintf(stderr, "Error al crear hilo para cambio de sentido\n");
             return 1;
         }
@@ -243,21 +243,23 @@ int main() {
     
     CEthread_t monitorear_sentido;
     
-    CEthread_create(&monitorear_sentido,(void*)chequearSentido,(void*)serial_port);
+    CEthread_create(&monitorear_sentido,(void*)chequearSentido,(void*)serial_port, 0);
     // Procesar el cruce de los barcos en el canal
     CEthread_t hilos_barcos[NUM_BARCOS];
     for (int i = 0; i < NUM_BARCOS; i++) {
-        if (CEthread_create(&hilos_barcos[i], cruzar_canal, &barcos[i]) != 0) {
+        if (CEthread_create(&hilos_barcos[i], cruzar_canal, &barcos[i], barcos[i].id) != 0 ) {
             fprintf(stderr, "Error al crear hilo para el barco %d\n", i);
             return 1;
         }
     }
     CEthread_t monitorear_Cruce;
 
-    CEthread_create(&monitorear_Cruce,(void*) chequear_colas,(void *) serial_port);
-    // Esperar a que todos los barcos crucen
+    CEthread_create(&monitorear_Cruce,(void*) chequear_colas,(void *) serial_port, 0);
+     // Esperar a que todos los barcos crucen
     for (int i = 0; i < NUM_BARCOS; i++) {
-        CEthread_join(&hilos_barcos[i], NULL);
+        int barco_id_cruzado;
+        CEthread_join(&hilos_barcos[i], &barco_id_cruzado);
+        printf("El barco con ID %d ha cruzado el canal\n", barco_id_cruzado);
     }
 
     // Detener el hilo de cambio de sentido si está activo

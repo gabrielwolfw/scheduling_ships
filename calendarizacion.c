@@ -28,27 +28,6 @@ void agregar_a_cola(SistemaCalendarizacion *sistema, Barco *barco) {
     }
 }
 
-// Remover un barco de la cola
-void remover_de_cola(NodoBarco **cola, Barco *barco) {
-    NodoBarco *actual = *cola;
-    NodoBarco *anterior = NULL;
-
-    while (actual != NULL && actual->barco != barco) {
-        anterior = actual;
-        actual = actual->siguiente;
-    }
-
-    if (actual == NULL) return; // No se encontró el barco
-
-    if (anterior == NULL) {
-        *cola = actual->siguiente; // Eliminar el primer nodo
-    } else {
-        anterior->siguiente = actual->siguiente;
-    }
-
-    free(actual);
-}
-
 // Función general para obtener el siguiente barco según el algoritmo seleccionado
 Barco *obtener_siguiente_barco(SistemaCalendarizacion *sistema, int direccion_actual, AlgoritmoCalendarizacion algoritmo) {
     switch (algoritmo) {
@@ -60,6 +39,8 @@ Barco *obtener_siguiente_barco(SistemaCalendarizacion *sistema, int direccion_ac
             return obtener_siguiente_barco_prioridad(sistema, direccion_actual);
         case SJF:
             return obtener_siguiente_barco_sjf(sistema, direccion_actual);
+        case TIEMPO_REAL:
+            return obtener_siguiente_barco_tiempo_real(sistema, direccion_actual);
         default:
             return NULL; // Algoritmo desconocido
     }
@@ -108,8 +89,9 @@ Barco *obtener_siguiente_barco_prioridad(SistemaCalendarizacion *sistema, int di
     NodoBarco *mayorPrioridad = actual;
     NodoBarco *anterior = NULL, *anteriorMayor = NULL;
 
+    // Recorrer la lista buscando el barco con la mayor prioridad (mayor número)
     while (actual != NULL) {
-        if (actual->barco->tipo > mayorPrioridad->barco->tipo) {
+        if (actual->barco->prioridad > mayorPrioridad->barco->prioridad) {  // Comparar usando la prioridad
             mayorPrioridad = actual;
             anteriorMayor = anterior;
         }
@@ -121,30 +103,31 @@ Barco *obtener_siguiente_barco_prioridad(SistemaCalendarizacion *sistema, int di
 
     // Eliminar barco seleccionado de la lista
     if (anteriorMayor == NULL) {
-        *cola = mayorPrioridad->siguiente;
+        *cola = mayorPrioridad->siguiente;  // Si es el primero en la lista
     } else {
-        anteriorMayor->siguiente = mayorPrioridad->siguiente;
+        anteriorMayor->siguiente = mayorPrioridad->siguiente;  // Saltar el nodo mayorPrioridad
     }
 
-    free(mayorPrioridad);
+    free(mayorPrioridad);  // Liberar la memoria del nodo
     return siguiente;
 }
 
 // Algoritmo de SJF (Shortest Job First)
 Barco *obtener_siguiente_barco_sjf(SistemaCalendarizacion *sistema, int direccion_actual) {
     NodoBarco **cola = (direccion_actual == 0) ? &sistema->izquierda : &sistema->derecha;
-    if (*cola == NULL) return NULL;
+    if (*cola == NULL) return NULL;  // Si no hay barcos en la cola
 
     NodoBarco *actual = *cola;
     NodoBarco *menorTiempo = actual;
     NodoBarco *anterior = NULL, *anteriorMenor = NULL;
 
     while (actual != NULL) {
-        if (actual->barco->velocidad < menorTiempo->barco->velocidad) {  // Velocidad más alta significa menor tiempo
-            menorTiempo = actual;
-            anteriorMenor = anterior;
+        // Comparar el tiempo restante, no la velocidad
+        if (actual->barco->tiempo_restante < menorTiempo->barco->tiempo_restante) {
+            menorTiempo = actual;  // Actualizar el nodo con menor tiempo restante
+            anteriorMenor = anterior;  // Guardar el nodo anterior
         }
-        anterior = actual;
+        anterior = actual;  // Mover al siguiente nodo
         actual = actual->siguiente;
     }
 
@@ -152,11 +135,48 @@ Barco *obtener_siguiente_barco_sjf(SistemaCalendarizacion *sistema, int direccio
 
     // Eliminar barco seleccionado de la lista
     if (anteriorMenor == NULL) {
-        *cola = menorTiempo->siguiente;
+        *cola = menorTiempo->siguiente;  // Si el barco seleccionado es el primero
     } else {
-        anteriorMenor->siguiente = menorTiempo->siguiente;
+        anteriorMenor->siguiente = menorTiempo->siguiente;  // Enlazar el anterior con el siguiente
     }
 
-    free(menorTiempo);
-    return siguiente;
+    free(menorTiempo);  // Liberar la memoria del nodo
+    return siguiente;  // Devolver el barco seleccionado
+}
+
+
+Barco* obtener_siguiente_barco_tiempo_real(SistemaCalendarizacion *sistema, int direccion_actual) {
+    NodoBarco **cola = (direccion_actual == 0) ? &sistema->izquierda : &sistema->derecha;
+    if (*cola == NULL) return NULL;
+
+    NodoBarco *actual = *cola;
+    NodoBarco *menorDeadline = actual;
+    NodoBarco *anterior = NULL, *anteriorMenor = NULL;
+
+    // Buscar el barco con el menor deadline
+    while (actual != NULL) {
+        if (actual->barco->deadline < menorDeadline->barco->deadline) {
+            menorDeadline = actual;
+            anteriorMenor = anterior;
+        }
+        anterior = actual;
+        actual = actual->siguiente;
+    }
+
+    Barco *siguiente = menorDeadline->barco;
+
+    // Eliminar barco seleccionado de la lista, pero NO liberar el barco
+    if (anteriorMenor == NULL) {
+        *cola = menorDeadline->siguiente;  // Eliminar el primer nodo
+    } else {
+        anteriorMenor->siguiente = menorDeadline->siguiente;  // Saltar el nodo menorDeadline
+    }
+
+    free(menorDeadline);  // Liberar solo el nodo, no el barco
+    return siguiente;  // Retornar el barco seleccionado
+}
+
+// Actualizar si hay barcos pendientes en el sistema
+bool hay_barcos_pendientes(SistemaCalendarizacion *sistema) {
+    return (sistema->izquierda != NULL || sistema->derecha != NULL);
 }

@@ -1,6 +1,6 @@
 #include "CEThreads.h"
-#define STACK_SIZE (1024 * 64)
 
+#define STACK_SIZE (1024 * 64)
 
 volatile sig_atomic_t keep_running = 1; // Variable global para controlar la ejecución
 
@@ -12,13 +12,16 @@ void handle_signal(int signum) {
 static int thread_start_wrapper(void *arg) {
     CEthread_t *thread = (CEthread_t *)arg;
     thread->retval = thread->start_routine(thread->arg);
-    return 0;
+    return thread->barco_id;  // Devolver el ID del barco
 }
 
-int CEthread_create(CEthread_t *thread, void *(*start_routine)(void *), void *arg) {
+
+
+int CEthread_create(CEthread_t *thread, void *(*start_routine)(void *), void *arg, int barco_id) {
     thread->start_routine = start_routine;
     thread->arg = arg;
     thread->stack = malloc(STACK_SIZE);
+    thread->barco_id = barco_id;  // Guardar el ID del barco
     
     if (!thread->stack) {
         perror("Failed to allocate stack");
@@ -41,7 +44,7 @@ int CEthread_create(CEthread_t *thread, void *(*start_routine)(void *), void *ar
     return 0;
 }
 
-int CEthread_join(CEthread_t *thread, void **retval) {
+int CEthread_join(CEthread_t *thread, int *barco_id) {
     if (thread->status != 1) {
         fprintf(stderr, "Thread %d is not active or not created\n", thread->id);
         return -1;
@@ -62,8 +65,8 @@ int CEthread_join(CEthread_t *thread, void **retval) {
         usleep(1000);  // Esperar un milisegundo antes de verificar de nuevo
     }
 
-    if (retval != NULL) {
-        *retval = thread->retval;
+    if (barco_id != NULL) {
+        *barco_id = thread->barco_id;  // Devolver el ID del barco
     }
 
     free(thread->stack);
@@ -111,6 +114,20 @@ int CEthread_end(CEthread_t *thread) {
 
 void CEthread_sleep(int segundos) {
     usleep(segundos * 1000000); // Convertir segundos a microsegundos
+}
+
+
+void CEthread_yield(void) {
+    // Simular un pequeño retraso
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = (rand() % 10 + 1) * 1000000; // 1-10 milisegundos
+
+    nanosleep(&ts, NULL);
+}
+
+void CEthread_init(void) {
+    srand(time(NULL));
 }
 
 
