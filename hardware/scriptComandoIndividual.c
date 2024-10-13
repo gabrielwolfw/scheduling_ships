@@ -70,6 +70,7 @@
 
 #define SERIAL_PORT "/dev/cu.usbmodem1414101"  // esto se cambia por el puerto serie donde se conecte el arduino
 #define NUM_BARCOS 5  // Número de barcos para la prueba
+ 
 void* chequearSentido(void* arg){
     int port = (int)arg;
     while(1){
@@ -192,14 +193,38 @@ int main() {
     CEthread_t hilo_cambio_sentido;
     if (modo == MODO_LETRERO) {
         canal_activo = true;
-        if (CEthread_create(&hilo_cambio_sentido, (void*)cambiar_sentido, NULL) != 0) {
+        if (CEthread_create(&hilo_cambio_sentido, (void*)cambiar_sentido, NULL, 0) != 0) {
             fprintf(stderr, "Error al crear hilo para cambio de sentido\n");
             return 1;
         }
     }
+
+        // Procesar el cruce de los barcos en el canal
+    CEthread_t hilos_barcos[NUM_BARCOS];
+    for (int i = 0; i < NUM_BARCOS; i++) {
+        if (CEthread_create(&hilos_barcos[i], cruzar_canal, &barcos[i], barcos[i].id) != 0) {
+            fprintf(stderr, "Error al crear hilo para el barco %d\n", i);
+            return 1;
+        }
+    }
+
+    // Esperar a que todos los barcos crucen
+    for (int i = 0; i < NUM_BARCOS; i++) {
+        int barco_id_cruzado;
+        CEthread_join(&hilos_barcos[i], &barco_id_cruzado);
+        printf("El barco con ID %d ha cruzado el canal\n", barco_id_cruzado);
+    }
+
+    // Detener el hilo de cambio de sentido si está activo
+    if (modo == MODO_LETRERO) {
+        canal_activo = false;
+        CEthread_join(&hilo_cambio_sentido, NULL);
+    }
+
+    printf("\nSimulación completada. Todos los barcos han cruzado el canal.\n");
     
     CEthread_t monitorear_sentido;
-    CEthread_create(&monitorear_sentido,(void*)chequearSentido,(void*)serial_port);
+    CEthread_create(&monitorear_sentido,(void*)chequearSentido,(void*)serial_port, 0);
     // Leer la respuesta del Arduino
     char read_buf[256];
     memset(&read_buf, '\0', sizeof(read_buf));
