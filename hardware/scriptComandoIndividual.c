@@ -68,19 +68,41 @@
 #include "../CEThreads.h"
 #include <stdio.h>
 
-#define SERIAL_PORT "/dev/cu.usbmodem1414101"  // esto se cambia por el puerto serie donde se conecte el arduino
+#define SERIAL_PORT "/dev/ttyACM0"  // esto se cambia por el puerto serie donde se conecte el arduino
 #define NUM_BARCOS 5  // Número de barcos para la prueba
  
+
+int leds[6] = {1, 2, 3, 4, 5, 6};
+void* chequear_colas(void*arg){
+    int* lista_cruzados = obtener_cruzados();
+    printf("%s \n", "Entrando a chequear cola");
+    for(int i; i < 6; i++){
+        if(lista_cruzados[i] != 9){
+            char buff[13];
+            int id = lista_cruzados[i];
+            snprintf(buff, 13, "REMOVE LEFT%d", id);
+            enviar_commando(buff, arg);
+        }
+    }
+}
 void* chequearSentido(void* arg){
     int port = (int)arg;
+    //printf("%s \n", "Entrando a chequear sentido");
     while(1){
+        //printf("%s \n", "Entrando a while de chequear sentido");
         if(sentido_actual){
+            //printf("%s \n", "Entrando a if izquierda");
             char command[] = "MOTOR LEFT\n";
             write(port, command, strlen(command));
+            //printf("%s \n", "Comando enviado");
+            usleep(1000000);
         }
         else{
+            //printf("%s \n", "Entrando a if derecha sentido");
             char command[] = "MOTOR RIGHT\n";
             write(port, command, strlen(command));
+            //printf("%s \n", "Comando enviado");
+            usleep(1000000);
         }
     }
 }
@@ -89,6 +111,13 @@ void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longi
     inicializar_barco(&barcos[id], id, direccion, tipo, longitud_canal);
     mostrar_info_barco(&barcos[id]);
     agregar_barco_al_canal(&barcos[id]);
+}
+
+void* enviar_commando(char* comando, void* arg){
+    int port = (int)arg;
+    //char command[] = &comando;
+    write(port, comando, strlen(comando));
+    usleep(100000);
 }
 
 int main() {
@@ -181,14 +210,28 @@ int main() {
 
     // Barcos de prueba con diferentes tipos
     crear_barco(barcos, 0, 1, NORMAL, longitud_canal);    // Barco 0, dirección derecha
-    char command[] = "GENERATE NORMAL LEFT1\n";
+    enviar_commando("GENERATE NORMAL RIGHT1\n", serial_port);
+    
+    /*
+    crear_barco(barcos, 1, 1, PESQUERO, longitud_canal);  // Barco 1, dirección derecha
+    command = "GENERATE PESQUERO RIGHT2\n";
     write(serial_port, command, strlen(command));
     usleep(100000);
-    //crear_barco(barcos, 1, 1, PESQUERO, longitud_canal);  // Barco 1, dirección derecha
-   // crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
-   // crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
-    //crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
 
+    crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
+    command = "GENERATE PATRULLA LEFT1\n";
+    write(serial_port, command, strlen(command));
+    usleep(100000);
+
+    crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
+    command = "GENERATE NORMAL LEFT2\n";
+    write(serial_port, command, strlen(command));
+    usleep(100000);
+
+    crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
+    command = "GENERATE NORMAL LEFT3\n";
+    write(serial_port, command, strlen(command));
+    usleep(100000);*/
     // Crear el hilo para el cambio de sentido del letrero
     CEthread_t hilo_cambio_sentido;
     if (modo == MODO_LETRERO) {
@@ -224,7 +267,31 @@ int main() {
     printf("\nSimulación completada. Todos los barcos han cruzado el canal.\n");
     
     CEthread_t monitorear_sentido;
+    
     CEthread_create(&monitorear_sentido,(void*)chequearSentido,(void*)serial_port, 0);
+    // Procesar el cruce de los barcos en el canal
+    CEthread_t hilos_barcos[NUM_BARCOS];
+    for (int i = 0; i < NUM_BARCOS; i++) {
+        if (CEthread_create(&hilos_barcos[i], cruzar_canal, &barcos[i], barcos[i].id) != 0 ) {
+            fprintf(stderr, "Error al crear hilo para el barco %d\n", i);
+            return 1;
+        }
+    }
+    CEthread_t monitorear_Cruce;
+
+    CEthread_create(&monitorear_Cruce,(void*) chequear_colas,(void *) serial_port, 0);
+     // Esperar a que todos los barcos crucen
+    for (int i = 0; i < NUM_BARCOS; i++) {
+        int barco_id_cruzado;
+        CEthread_join(&hilos_barcos[i], &barco_id_cruzado);
+        printf("El barco con ID %d ha cruzado el canal\n", barco_id_cruzado);
+    }
+
+    // Detener el hilo de cambio de sentido si está activo
+    if (modo == MODO_LETRERO) {
+        canal_activo = false;
+        CEthread_join(&hilo_cambio_sentido, NULL);
+    }
     // Leer la respuesta del Arduino
     char read_buf[256];
     memset(&read_buf, '\0', sizeof(read_buf));
