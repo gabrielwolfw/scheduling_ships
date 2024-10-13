@@ -20,6 +20,7 @@ bool canal_activo = true;      // Estado del canal
 bool canal_ocupado = false;    // Estado del canal
 
 int indice_cruce = 0;
+int* barcos_cruzados;
 
 int *obtener_cruzados(){
     printf("%s \n", "Entrando a obtener cruzados");
@@ -33,7 +34,7 @@ void registrar_cruce(int id){
     indice_cruce++;
 }
 
-void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoControlFlujo modo, int parametro_w_definido, AlgoritmoCalendarizacion algoritmo, int* lista_barcos_cruzados) {
+void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoControlFlujo modo, int parametro_w_definido, AlgoritmoCalendarizacion algoritmo) {
     sentido_actual = 0;  // Comienza de izquierda a derecha
     tiempo_letrero = tiempo_letrero_definido;
     longitud_canal = longitud_definida;
@@ -44,7 +45,10 @@ void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoContr
     CEmutex_init(&canal_mutex);
     CEmutex_init(&letrero_mutex);
     inicializar_sistema(&sistema_cal);
-    barcos_cruzados = lista_barcos_cruzados;
+    barcos_cruzados = malloc(sizeof(int) * 6);
+    for(int i=0; i<6; i++){
+        barcos_cruzados[i] = 9;
+    }
 }
 
 void* cruzar_canal_letrero(void* arg) {

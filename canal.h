@@ -24,12 +24,11 @@ extern AlgoritmoCalendarizacion algoritmo_actual; // Algoritmo de calendarizaci�
 extern CEmutex_t canal_mutex;
 extern CEmutex_t letrero_mutex;
 extern SistemaCalendarizacion sistema_cal; // Sistema de calendarización
-extern int* barcos_cruzados;
 
 extern bool canal_activo;  // Agregar esto para controlar el estado del canal
 
 // Funciones para el manejo del canal
-void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoControlFlujo modo, int parametro_w_definido, AlgoritmoCalendarizacion algoritmo, int* lista_barcos_cruzados);
+void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoControlFlujo modo, int parametro_w_definido, AlgoritmoCalendarizacion algoritmo);
 void* cruzar_canal(void* arg);  // Función general para que un barco cruce el canal
 void* cambiar_sentido();  // Cambia el sentido del letrero
 void agregar_barco_al_canal(Barco* barco);

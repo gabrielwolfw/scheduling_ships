@@ -6,29 +6,23 @@
 
 #define NUM_BARCOS 6 // Número de barcos para la prueba
 
-void *chequear_colas(void *arg)
+void *chequear_colas()
 {
-    printf("%s \n", "Entrando a chequear cola");
-    int *lista_cruzados = (int*)arg;
-
-    for (int i = 0; i < 6; i++)
+    while (1)
     {
-        printf("Posicion: %d \n", i);
-        printf("%s \n", "Entrando a for \n");
+        printf("%s \n", "Entrando a chequear cola");
+        int *lista_cruzados = obtener_cruzados();
+
         if (lista_cruzados != NULL)
         {
-            printf("%s \n", "Entrando a if NULL \n");
-            printf("Tamano %d \n", sizeof(lista_cruzados));
-            printf("Tratando elemento %d \n", lista_cruzados);
-            if (lista_cruzados[i] != 9)
+            for (int i = 0; i < 6; i++)
             {
-                printf("%s \n", "Entrando a if");
-                printf("Ya cruzo: %d \n", lista_cruzados[i]);
-                /*char buff[13];
-                int id = lista_cruzados[i];
-                snprintf(buff, 13, "REMOVE LEFT%d", id);
-                enviar_commando(buff, arg);*/
+                if (lista_cruzados[i] != 9)
+                {
+                    printf("Ya cruzo: %d \n", lista_cruzados[i]);
+                }
             }
+            usleep(1000000);
         }
     }
 }
@@ -52,7 +46,7 @@ int main()
     int *array_barcos_cruzados = malloc(sizeof(int) * 6);
 
     // Inicialización del canal
-    iniciar_canal(tiempo_letrero, longitud_canal, modo, parametro_w, algoritmo, array_barcos_cruzados);
+    iniciar_canal(tiempo_letrero, longitud_canal, modo, parametro_w, algoritmo);
     sistema_cal.quantum = quantum; // Establecer el quantum para Round Robin
 
     // Mostrar configuración del canal
