@@ -72,6 +72,13 @@
 #define NUM_BARCOS 5  // Número de barcos para la prueba
  
 
+void* enviar_commando(char* comando, void* arg){
+    int port = (int)arg;
+    //char command[] = &comando;
+    write(port, comando, strlen(comando));
+    usleep(100000);
+}
+
 int leds[6] = {1, 2, 3, 4, 5, 6};
 void* chequear_colas(void*arg){
     int* lista_cruzados = obtener_cruzados();
@@ -113,12 +120,6 @@ void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longi
     agregar_barco_al_canal(&barcos[id]);
 }
 
-void* enviar_commando(char* comando, void* arg){
-    int port = (int)arg;
-    //char command[] = &comando;
-    write(port, comando, strlen(comando));
-    usleep(100000);
-}
 
 int main() {
     int serial_port = open(SERIAL_PORT, O_RDWR);
@@ -210,7 +211,7 @@ int main() {
 
     // Barcos de prueba con diferentes tipos
     crear_barco(barcos, 0, 1, NORMAL, longitud_canal);    // Barco 0, dirección derecha
-    enviar_commando("GENERATE NORMAL RIGHT1\n", serial_port);
+    enviar_commando("GENERATE NORMAL RIGHT1\n", (void*)serial_port);
     
     /*
     crear_barco(barcos, 1, 1, PESQUERO, longitud_canal);  // Barco 1, dirección derecha
