@@ -82,8 +82,11 @@ int leds[6] = {1, 2, 3, 4, 5, 6};
 void* chequear_colas(void*arg){
     int* lista_cruzados = obtener_cruzados();
     printf("%s \n", "Entrando a chequear cola");
-    for(int i; i < 6; i++){
+    printf("Primer elemento: %d", lista_cruzados[0]);
+    for(int i=0; i < 6; i++){
+        printf("%s \n", "Entrando al for");
         if(lista_cruzados[i] != 9){
+            printf("%s \n", "Entrando al if");
             char buff[13];
             int id = lista_cruzados[i];
             snprintf(buff, 13, "REMOVE LEFT%d", id);
@@ -212,26 +215,19 @@ int main() {
     crear_barco(barcos, 0, 1, NORMAL, longitud_canal);    // Barco 0, dirección derecha
     enviar_commando("GENERATE NORMAL RIGHT1\n", (void*)serial_port);
     
-    /*
     crear_barco(barcos, 1, 1, PESQUERO, longitud_canal);  // Barco 1, dirección derecha
-    command = "GENERATE PESQUERO RIGHT2\n";
-    write(serial_port, command, strlen(command));
-    usleep(100000);
+    enviar_commando("GENERATE PESQUERO RIGHT2\n", (void*)serial_port);
+    
 
     crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
-    command = "GENERATE PATRULLA LEFT1\n";
-    write(serial_port, command, strlen(command));
-    usleep(100000);
+    enviar_commando("GENERATE PATRULLA LEFT1\n", (void*)serial_port);
 
     crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
-    command = "GENERATE NORMAL LEFT2\n";
-    write(serial_port, command, strlen(command));
-    usleep(100000);
+    enviar_commando("GENERATE NORMAL LEFT2\n", (void*)serial_port);
 
     crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
-    command = "GENERATE NORMAL LEFT3\n";
-    write(serial_port, command, strlen(command));
-    usleep(100000);*/
+    enviar_commando("GENERATE NORMAL RIGHT3\n", (void*)serial_port);
+
     // Crear el hilo para el cambio de sentido del letrero
     CEthread_t hilo_cambio_sentido;
     if (modo == MODO_LETRERO) {
@@ -253,9 +249,9 @@ int main() {
             return 1;
         }
     }
-    CEthread_t monitorear_Cruce;
+    //CEthread_t monitorear_Cruce;
 
-    CEthread_create(&monitorear_Cruce,(void*) chequear_colas,(void *) serial_port, 0);
+    //CEthread_create(&monitorear_Cruce,(void*) chequear_colas,(void *) serial_port, 0);
      // Esperar a que todos los barcos crucen
     for (int i = 0; i < NUM_BARCOS; i++) {
         int barco_id_cruzado;
@@ -268,31 +264,7 @@ int main() {
         canal_activo = false;
         CEthread_join(&hilo_cambio_sentido, NULL);
     }
-    // Leer la respuesta del Arduino
-    char read_buf[256];
-    memset(&read_buf, '\0', sizeof(read_buf));
-
-    while (1) {
-        int num_bytes = read(serial_port, &read_buf, sizeof(read_buf));
-
-        if (num_bytes < 0) {
-            printf("Error al leer del puerto serie: %s\n", strerror(errno));
-            return 1;
-        } else if (num_bytes == 0) {
-            // No hay datos disponibles, delay para esperar
-            usleep(100000); // 100 ms
-        } else {
-            printf("Respuesta recibida (%d bytes): %s\n", num_bytes, read_buf);
-            memset(&read_buf, '\0', sizeof(read_buf)); // Limpiar el buffer
-
-            // Aca se puede agregar una condición para salir del bucle si es necesario
-            // break;
-        }
-
-        // Para evitar un bucle infinito en este ejemplo, salimos después de leer la respuesta
-        
-        break;
-    }
+    
 
     // Cerrar el puerto serie
     close(serial_port);
