@@ -189,7 +189,7 @@ int main() {
     int longitud_canal = 10;     // Longitud del canal en unidades
     int parametro_w = 3;         // Número de barcos por dirección en modo equidad
     AlgoritmoCalendarizacion algoritmo = ROUND_ROBIN;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
-    ModoControlFlujo modo = MODO_EQUIDAD;
+    ModoControlFlujo modo = LETRERO;
     int quantum = 5;  // Quantum para Round Robin
 
     // Inicialización del canal
@@ -209,8 +209,10 @@ int main() {
     printf("- Quantum (para Round Robin): %d segundos\n", quantum);
 
     Barco barcos[NUM_BARCOS];
+    enviar_commando("MOTOR STOP\n", (void*)serial_port);
+    
     printf("\nAgregando barcos a la cola...\n");
-
+    
     // Barcos de prueba con diferentes tipos
     crear_barco(barcos, 0, 1, NORMAL, longitud_canal);    // Barco 0, dirección derecha
     enviar_commando("GENERATE NORMAL RIGHT1\n", (void*)serial_port);
@@ -218,16 +220,15 @@ int main() {
     crear_barco(barcos, 1, 1, PESQUERO, longitud_canal);  // Barco 1, dirección derecha
     enviar_commando("GENERATE PESQUERO RIGHT2\n", (void*)serial_port);
     
-
     crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
     enviar_commando("GENERATE PATRULLA LEFT1\n", (void*)serial_port);
-
+    
     crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
     enviar_commando("GENERATE NORMAL LEFT2\n", (void*)serial_port);
-
+    
     crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
     enviar_commando("GENERATE NORMAL RIGHT3\n", (void*)serial_port);
-
+    
     // Crear el hilo para el cambio de sentido del letrero
     CEthread_t hilo_cambio_sentido;
     if (modo == MODO_LETRERO) {
