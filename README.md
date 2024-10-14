@@ -1,25 +1,22 @@
 # Scheduling Ships
 ## Instrucciones de uso
 ### 1. Clonar repositorio
-
-https://github.com/gabrielwolfw/scheduling_ships.git
-cd scheduling_ships
-
+    https://github.com/gabrielwolfw/scheduling_ships.git
+    cd scheduling_ships
 ### 2. Instalar paquetes
-sudo apt-get update
-sudo apt-get install build-essential
-
+    sudo apt-get update
+    sudo apt-get install build-essential
 ### 3. Configuración mediante txt en el archivo config_canal.txt
-control_flujo=MODO_LETRERO
-longitud_canal=10
-velocidad_normal=1.0
-velocidad_pesquero=2.0
-velocidad_patrulla=3.0
-cantidad_barcos=6
-tiempo_letrero=20
-parametro_w=3
-algoritmo=ROUND_ROBIN
-quantum=5
+    control_flujo=MODO_LETRERO
+    longitud_canal=10
+    velocidad_normal=1.0
+    velocidad_pesquero=2.0
+    velocidad_patrulla=3.0
+    cantidad_barcos=6
+    tiempo_letrero=20
+    parametro_w=3
+    algoritmo=ROUND_ROBIN
+    quantum=5
 
 ### 4. Añadir barcos manualmente
 Ejemplo:
@@ -44,6 +41,6 @@ Ejemplo:
     leds[2] = 4;
 
 ### 4. Compilación
-make
-make run
+    make
+    make run
 
