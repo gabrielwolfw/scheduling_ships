@@ -20,6 +20,7 @@
 
 ### 4. Añadir barcos manualmente
 Ejemplo:
+    
     crear_barco(barcos, 0, 1, NORMAL, longitud_canal); // Barco 0, dirección derecha
     enviar_commando("GENERATE NORMAL RIGHT1\n", (void *)serial_port);
     leds[3] = 0;
