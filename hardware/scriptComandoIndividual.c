@@ -69,13 +69,13 @@
 
 #define SERIAL_PORT "/dev/ttyACM0" // esto se cambia por el puerto serie donde se conecte el arduino
 #define NUM_BARCOS 5               // Número de barcos para la prueba
-
+CEmutex_t sentidoMutex;
 void *enviar_commando(char *comando, void *arg)
 {
     int port = (int)arg;
     printf("%s \n", comando);
     write(port, comando, strlen(comando));
-    usleep(3000000);
+    usleep(1000000);
 }
 
 int leds[6] = {9, 9, 9, 9, 9, 9};
@@ -112,13 +112,14 @@ void *chequear_colas(void *arg)
 
                 }
             }
-            usleep(100000);
+            usleep(200000);
         }
+        
     }
 }
 void *chequearSentido(void *arg)
 {
-    
+    CEmutex_init(&sentidoMutex);
     int port = (int)arg;
     while (1)
     {
@@ -126,14 +127,16 @@ void *chequearSentido(void *arg)
         if (sentido_actual)
         {
             printf("girando izquierda\n");
+            CEmutex_lock(&sentidoMutex);
             enviar_commando("MOTOR LEFT\n", port);
-            usleep(1000000);
+            CEmutex_unlock(&sentidoMutex);
         }
         else
         {
             printf("girando derecha\n");
+            CEmutex_lock(&sentidoMutex);
             enviar_commando("MOTOR RIGHT\n", port);
-            usleep(1000000);
+            CEmutex_unlock(&sentidoMutex);
         }
     }
 }
@@ -166,8 +169,8 @@ int main()
     }
 
     // Configuración de velocidad de baudios
-    cfsetispeed(&tty, B115200);
-    cfsetospeed(&tty, B115200);
+    cfsetispeed(&tty, B230400);
+    cfsetospeed(&tty, B230400);
 
     // Configurar 8N1 (8 bits de datos, sin paridad, 1 bit de stop)
     tty.c_cflag &= ~PARENB; // Sin bit de paridad
@@ -242,27 +245,25 @@ int main()
     // Barcos de prueba con diferentes tipos
     crear_barco(barcos, 0, 1, NORMAL, longitud_canal); // Barco 0, dirección derecha
     enviar_commando("GENERATE NORMAL RIGHT1\n", (void *)serial_port);
-    leds[0] = 0;
+    leds[3] = 0;
 
     crear_barco(barcos, 1, 1, PESQUERO, longitud_canal);  // Barco 1, dirección derecha
     enviar_commando("GENERATE PESQUERO RIGHT2\n", (void *)serial_port);
-    leds[1] = 1;
+    leds[4] = 1;
 
     crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
     enviar_commando("GENERATE PATRULLA LEFT1\n", (void *)serial_port);
-    leds[3] = 2;
+    leds[0] = 2;
 
     crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
     enviar_commando("GENERATE NORMAL LEFT2\n", (void *)serial_port);
-    leds[4] = 3;
+    leds[1] = 3;
 
     crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
     enviar_commando("GENERATE NORMAL LEFT3\n", (void *)serial_port);
-    leds[5] = 4;
+    leds[2] = 4;
 
-    CEthread_t monitorear_sentido;
-    CEthread_create(&monitorear_sentido, (void *)chequearSentido, (void *)serial_port, 0);
-
+    
 
     // Crear el hilo para el cambio de sentido del letrero
     CEthread_t hilo_cambio_sentido;
@@ -276,7 +277,12 @@ int main()
         }
     }
     
-    
+    CEthread_t monitorear_sentido;
+    CEthread_create(&monitorear_sentido, (void *)chequearSentido, (void *)serial_port, 0);
+
+    CEthread_t monitorear_Cruce;
+    CEthread_create(&monitorear_Cruce, (void *)chequear_colas, (void *)serial_port, 0);
+
     
     // Procesar el cruce de los barcos en el canal
     CEthread_t hilos_barcos[NUM_BARCOS];
@@ -288,9 +294,7 @@ int main()
             return 1;
         }
     }
-    CEthread_t monitorear_Cruce;
-    CEthread_create(&monitorear_Cruce, (void *)chequear_colas, (void *)serial_port, 0);
-
+    
 
     // Esperar a que todos los barcos crucen
     for (int i = 0; i < NUM_BARCOS; i++)
@@ -306,8 +310,10 @@ int main()
         canal_activo = false;
         CEthread_join(&hilo_cambio_sentido, NULL);
     }
-
+    usleep(5000000);
     printf("\nSimulación completada. Todos los barcos han cruzado el canal.\n");
+    usleep(2000000);
+    enviar_commando("MOTOR STOP\n", (void*)serial_port);
 
     // Cerrar el puerto serie
     close(serial_port);

@@ -161,7 +161,7 @@ void setup() {
   // Configura el pin del joystick
   pinMode(joystickX, INPUT);
 
-  Serial.begin(115200);  // Aumentamos el baud rate para acelerar la comunicación serial
+  Serial.begin(250000);  // Aumentamos el baud rate para acelerar la comunicación serial
 
   // Configuración inicial del motor
   setDirection();
