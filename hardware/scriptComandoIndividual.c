@@ -65,17 +65,21 @@
 #include "../barco.h"
 #include "../calendarizacion.h"
 #include "../CEThreads.h"
+#include "../configuracion.h"
 #include <stdio.h>
 #include "../configuracion.h"
 #define NUM_BARCOS 6  // Número de barcos para la prueba
 
-#define SERIAL_PORT "/dev/ttyACM0" // esto se cambia por el puerto serie donde se conecte el arduino           
 
+#define SERIAL_PORT "/dev/ttyACM0" // esto se cambia por el puerto serie donde se conecte el arduino
+#define NUM_BARCOS 5               // Número de barcos para la prueba
+CEmutex_t sentidoMutex;
 void *enviar_commando(char *comando, void *arg)
 {
     int port = (int)arg;
+    printf("%s \n", comando);
     write(port, comando, strlen(comando));
-    usleep(100000);
+    usleep(1000000);
 }
 
 int leds[6] = {9, 9, 9, 9, 9, 9};
@@ -95,16 +99,16 @@ void *chequear_colas(void *arg)
                     int id = lista_cruzados[i];
                     for(int j = 0; j < 6; j++){
                         if(leds[j]==id){
-                            if(j >= 0 || j <= 2){
-                                printf("Ya cruzo: %d \n", lista_cruzados[i]);
-                                char buff[13];
-                                snprintf(buff, 13, "REMOVE LEFT%d", j);
+                            if(j >= 0 && j <= 2){
+                                //printf("Ya cruzo: %d \n", lista_cruzados[i]);
+                                char buff[14];
+                                snprintf(buff, 14, "REMOVE LEFT%d", j+1);
                                 enviar_commando(buff, arg);
                             }
                             else{
-                                printf("Ya cruzo: %d \n", lista_cruzados[i]);
-                                char buff[13];
-                                snprintf(buff, 13, "REMOVE RIGHT%d", j - 3);
+                                //printf("Ya cruzo: %d \n", lista_cruzados[i]);
+                                char buff[14];
+                                snprintf(buff, 14, "REMOVE RIGHT%d", j-2);
                                 enviar_commando(buff, arg);
                             }
                         }
@@ -112,55 +116,85 @@ void *chequear_colas(void *arg)
 
                 }
             }
-            usleep(100000);
+            usleep(200000);
         }
+        
     }
 }
 void *chequearSentido(void *arg)
 {
+    CEmutex_init(&sentidoMutex);
     int port = (int)arg;
     while (1)
     {
+        //printf("Chequeando Sentido");
         if (sentido_actual)
         {
-            char command[] = "MOTOR LEFT\n";
-            write(port, command, strlen(command));
-            usleep(1000000);
+            printf("girando izquierda\n");
+            CEmutex_lock(&sentidoMutex);
+            enviar_commando("MOTOR LEFT\n", port);
+            CEmutex_unlock(&sentidoMutex);
         }
         else
         {
-            char command[] = "MOTOR RIGHT\n";
-            write(port, command, strlen(command));
-            usleep(1000000);
+            printf("girando derecha\n");
+            CEmutex_lock(&sentidoMutex);
+            enviar_commando("MOTOR RIGHT\n", port);
+            CEmutex_unlock(&sentidoMutex);
         }
     }
 }
 
-void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal, ConfiguracionCanal *config) {
-    // Inicializar el barco con los valores según el tipo
+void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal, int* leds, int serial_port) {
+    // Inicializar el barco
     inicializar_barco(&barcos[id], id, direccion, tipo, longitud_canal);
 
     // Asignar la velocidad según el tipo de barco
     switch (tipo) {
         case NORMAL:
-            barcos[id].velocidad = config->velocidad_normal;
+            barcos[id].velocidad = 10; // Ejemplo de velocidad
             break;
         case PESQUERO:
-            barcos[id].velocidad = config->velocidad_pesquero;
+            barcos[id].velocidad = 8;  // Ejemplo de velocidad
             break;
         case PATRULLA:
-            barcos[id].velocidad = config->velocidad_patrulla;
+            barcos[id].velocidad = 12; // Ejemplo de velocidad
             break;
         default:
             printf("Tipo de barco desconocido\n");
+            return;
+    }
+
+    // Determinar el tipo de barco en formato de comando
+    char tipo_barco[10];
+    switch (tipo) {
+        case NORMAL:
+            strcpy(tipo_barco, "NORMAL");
+            break;
+        case PESQUERO:
+            strcpy(tipo_barco, "PESQUERO");
+            break;
+        case PATRULLA:
+            strcpy(tipo_barco, "PATRULLA");
             break;
     }
 
-    mostrar_info_barco(&barcos[id]);
-    agregar_barco_al_canal(&barcos[id]);
+    // Determinar el comando y la posición del LED
+    char comando[50];
+    if (direccion == 0) { // Izquierda
+        snprintf(comando, sizeof(comando), "GENERATE %s LEFT%d\n", tipo_barco, id + 1);
+        leds[id] = id; // Asignar el ID del barco a la posición del LED correspondiente
+    } else { // Derecha
+        snprintf(comando, sizeof(comando), "GENERATE %s RIGHT%d\n", tipo_barco, id + 1);
+        leds[id + 3] = id; // Asignar el ID del barco a la posición del LED correspondiente
+    }
+
+    // Enviar el comando GENERATE
+    enviar_commando(comando, (void *)serial_port);
+    printf("ID del barco %d asignado al LED %d\n", id, (direccion == 0 ? id : id + 3));
 }
 
-void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitud_canal, ConfiguracionCanal *config, int port) {
+void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitud_canal, ConfiguracionCanal *config, int serial_port, int* leds) {
     char opcion;
 
     while (1) {
@@ -186,6 +220,7 @@ void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitu
 
         direccion = (oceano == 0) ? 0 : 1;  // Izquierda a derecha o derecha a izquierda
         char* tipo_valor;
+
         // Asignar el tipo de barco según la entrada del usuario
         switch (opcion) {
             case 'n':
@@ -206,18 +241,8 @@ void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitu
         }
 
         // Crear el barco y agregarlo al sistema
-        crear_barco(barcos, *contador_barcos, direccion, tipo, longitud_canal, config);
+        crear_barco(barcos, *contador_barcos, direccion, tipo, longitud_canal, leds, serial_port);
         (*contador_barcos)++;  // Incrementar el contador de barcos
-        char buff[25];
-        int id = *contador_barcos;
-        if(id >= 3 || id <= 5){
-            int temp = id;
-            id = temp - 3;
-        }
-        snprintf(buff, 25, "GENERATE %s %s%d", tipo_valor, sentido_actual == 0 ? "LEFT" : "RIGHT", id);
-        printf("Comando generado: %s \n", buff);
-        enviar_commando(buff, (void *)port);
-        leds[*contador_barcos] = id;
     }
 }
 
@@ -242,8 +267,8 @@ int main()
     }
 
     // Configuración de velocidad de baudios
-    cfsetispeed(&tty, B115200);
-    cfsetospeed(&tty, B115200);
+    cfsetispeed(&tty, B230400);
+    cfsetospeed(&tty, B230400);
 
     // Configurar 8N1 (8 bits de datos, sin paridad, 1 bit de stop)
     tty.c_cflag &= ~PARENB; // Sin bit de paridad
@@ -286,8 +311,9 @@ int main()
     // Agregar una pausa de 2 segundos para que el Arduino se reinicie
     sleep(2);
 
-        ConfiguracionCanal config;
-    leer_configuracion("config_canal.txt", &config);  // Leer el archivo de configuración
+    // Configuración inicial del canal
+    ConfiguracionCanal config;
+    leer_configuracion("../config_canal.txt", &config);  // Leer el archivo de configuración
 
     // Obtener el modo de control de flujo y el algoritmo de calendarización
     ModoControlFlujo modo = obtener_modo_control_flujo(config.control_flujo);
@@ -309,30 +335,12 @@ int main()
 
     Barco barcos[NUM_BARCOS];
     int contador_barcos = 0;  // Inicializar contador de barcos
-
+    int leds[6]; // Asociar directamente con el ID de cada barco
+    enviar_commando("MOTOR STOP\n", (void*)serial_port);
     printf("\nAgregando barcos a la cola...\n");
-    agregar_barcos_por_teclado(barcos, &contador_barcos, config.longitud_canal, &config, serial_port);
+    agregar_barcos_por_teclado(barcos, &contador_barcos, config.longitud_canal, &config, serial_port, leds);
 
-    // Barcos de prueba con diferentes tipos
-    crear_barco(barcos, 0, 1, NORMAL, longitud_canal); // Barco 0, dirección derecha
-    enviar_commando("GENERATE NORMAL RIGHT1\n", (void *)serial_port);
-    leds[0] = 0;
-
-    crear_barco(barcos, 1, 1, PESQUERO, longitud_canal);  // Barco 1, dirección derecha
-    enviar_commando("GENERATE PESQUERO RIGHT2\n", (void *)serial_port);
-    leds[1] = 1;
-
-    crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
-    enviar_commando("GENERATE PATRULLA LEFT1\n", (void *)serial_port);
-    leds[3] = 2;
-
-    crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
-    enviar_commando("GENERATE NORMAL LEFT2\n", (void *)serial_port);
-    leds[4] = 3;
-
-    crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
-    enviar_commando("GENERATE NORMAL LEFT3\n", (void *)serial_port);
-    leds[5] = 4;
+    
 
     // Crear el hilo para el cambio de sentido del letrero
     CEthread_t hilo_cambio_sentido;
@@ -352,6 +360,7 @@ int main()
     CEthread_t monitorear_Cruce;
     CEthread_create(&monitorear_Cruce, (void *)chequear_colas, (void *)serial_port, 0);
 
+    
     // Procesar el cruce de los barcos en el canal
     CEthread_t hilos_barcos[NUM_BARCOS];
     for (int i = 0; i < NUM_BARCOS; i++)
@@ -362,6 +371,7 @@ int main()
             return 1;
         }
     }
+    
 
     // Esperar a que todos los barcos crucen
     for (int i = 0; i < NUM_BARCOS; i++)
@@ -370,15 +380,17 @@ int main()
         CEthread_join(&hilos_barcos[i], &barco_id_cruzado);
         printf("El barco con ID %d ha cruzado el canal\n", barco_id_cruzado);
     }
-
+    
     // Detener el hilo de cambio de sentido si está activo
     if (modo == MODO_LETRERO)
     {
         canal_activo = false;
         CEthread_join(&hilo_cambio_sentido, NULL);
     }
-
+    usleep(5000000);
     printf("\nSimulación completada. Todos los barcos han cruzado el canal.\n");
+    usleep(2000000);
+    enviar_commando("MOTOR STOP\n", (void*)serial_port);
 
     // Cerrar el puerto serie
     close(serial_port);

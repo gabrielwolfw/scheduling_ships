@@ -111,22 +111,23 @@ void* cruzar_canal_letrero(void* arg) {
 
 void* cruzar_canal_equidad(void* arg) {
     Barco* barco = (Barco*) arg;
-
+    
     CEmutex_lock(&canal_mutex);
-
+    
     while (barco->direccion != sentido_actual || barcos_pasados >= parametro_w) {
         CEmutex_unlock(&canal_mutex);
         CEthread_sleep(1);
         CEmutex_lock(&canal_mutex);
+        
     }
-
+    
     Barco* siguiente = obtener_siguiente_barco(&sistema_cal, sentido_actual, algoritmo_actual);
     if (siguiente != barco) {
         agregar_a_cola(&sistema_cal, barco);  // Aquí es clave que esta función ya usa listas
         CEmutex_unlock(&canal_mutex);
         return NULL;
     }
-
+    
     int tiempo_total_cruce = longitud_canal / barco->velocidad;
 
     printf("Barco %d está cruzando de %s a %s (tomará %d segundos)\n",
@@ -142,7 +143,9 @@ void* cruzar_canal_equidad(void* arg) {
     barcos_pasados++;
     if (barcos_pasados >= parametro_w) {
         sentido_actual = 1 - sentido_actual;
+        CEthread_sleep(0.5);
         barcos_pasados = 0;
+        CEthread_sleep(1);
         printf("Cambiando el sentido del canal a %s.\n",
                sentido_actual == 0 ? "izquierda a derecha" : "derecha a izquierda");
     }
@@ -202,6 +205,7 @@ void* cambiar_sentido(void* arg) {
         CEmutex_lock(&canal_mutex);
         if (!canal_ocupado) {
             sentido_actual = 1 - sentido_actual;
+            CEthread_sleep(0.5);
             printf("Cambiando el sentido del canal a %s.\n",
                    sentido_actual == 0 ? "izquierda a derecha" : "derecha a izquierda");
         }

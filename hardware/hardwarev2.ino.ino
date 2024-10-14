@@ -1,61 +1,3 @@
-// COMANDOS SERIALES
-
-// Comando MOTOR <dirección>
-// Cambia la dirección de giro del motor, lo que a su vez cambia el sentido del flujo del canal.
-// MOTOR LEFT: Establece el motor para que gire hacia la izquierda (flujo de derecha a izquierda).
-// MOTOR RIGHT: Establece el motor para que gire hacia la derecha (flujo de izquierda a derecha).
-
-// POSICIONES
-// Para los botes se manejan una cola con un orden específico para cada bote generado, cada cola
-// tiene capacidad para 3 botes, y van en este orden:
-// Botes del lado izquierdo: [3,2,1]
-// Botes del lado derecho: [1,2,3]
-
-// Comando GENERATE <tipo_barco> <posición>
-// Genera un barco de un tipo específico en una posición específica de la cola (fila de espera).
-// <tipo_barco>: Puede ser uno de los siguientes:
-// PATRULLA: Barco de tipo patrulla.
-// NORMAL: Barco de tipo normal.
-// PESQUERO: Barco de tipo pesquero.
-// <posición>: Especifica la posición en la que se generará el barco. Puede ser:
-// Lado izquierdo: LEFT1, LEFT2, LEFT3.
-// Lado derecho: RIGHT1, RIGHT2, RIGHT3.
-// Ejemplos:
-// GENERATE PATRULLA LEFT1: Genera un barco de tipo patrulla en la posición LEFT1.
-// GENERATE NORMAL RIGHT2: Genera un barco de tipo normal en la posición RIGHT2.
-// Si la posición especificada ya está ocupada, el Arduino responderá: La posición <posición> ya está ocupada
-
-
-// Comando REMOVE <posición>
-// Remueve el barco que se encuentra en la posición especificada.
-// <posición>: Especifica la posición de la cual se removerá el barco. Puede ser:
-// Lado izquierdo: LEFT1, LEFT2, LEFT3.
-// Lado derecho: RIGHT1, RIGHT2, RIGHT3.
-// Ejemplos:
-// REMOVE LEFT1: Remueve el barco en la posición LEFT1.
-
-// Si se envía un comando que no coincide con ninguno de los anteriores, el Arduino responderá: Comando desconocido
-
-// CONSIDERACIONES
-// Los comandos deben terminar con un carácter de nueva línea (\n) para que el Arduino los procese.
-// Los espacios son importantes para separar los parámetros.
-// El sistema no distingue entre mayúsculas y minúsculas; todos los comandos se convierten a mayúsculas internamente.
-
-//Respuestas y Estado del Sistema
-// Estado del Canal: El Arduino envía periódicamente el estado del canal y las colas por serial:
-// Sentido: ->
-// Cola Izq: -,P,-
-// Cola Der: N,-,-
-// -> indica flujo de izquierda a derecha.
-// <- indica flujo de derecha a izquierda.
-
-// Abreviaturas de los tipos de barcos en las colas:
-// P: Patrulla
-// N: Normal
-// S: Pesquero (usamos 'S' para 'Pesquero')
-// -: Posición vacía
-
-
 // Pines del motor
 const int in1 = 8;
 const int in2 = 9;
@@ -117,9 +59,7 @@ int ladoActual = 0; // 0 = ningún lado, 1 = izquierda, 2 = derecha
 // Variables de tiempo
 unsigned long previousMillisMotor = 0;
 unsigned long previousMillisLED = 0;
-unsigned long previousMillisSerial = 0;  // Para el envío continuo de datos por serial
 const long intervalLED = 500;   // Intervalo de parpadeo para los LEDs
-const long intervalSerial = 1000; // Enviar datos por serial cada segundo
 const long intervalMotor = 2;
 const long debounceDelay = 200;  // Tiempo de espera para evitar rebotes (200 ms)
 
@@ -129,6 +69,9 @@ unsigned long lastDebounceTime = 0;  // Tiempo de la última lectura de los boto
 // Variables para comunicación serial no bloqueante
 String inputString = "";         // Una cadena para almacenar los datos entrantes
 bool stringComplete = false;     // Indica si la cadena está completa
+
+// Variable para controlar el estado del motor
+bool motorActivo = false; // El motor está detenido por defecto
 
 void setup() {
   // Configura los pines de salida del motor
@@ -149,6 +92,10 @@ void setup() {
   pinMode(ledIzquierdaDerecha, OUTPUT);
   pinMode(ledDerechaIzquierda, OUTPUT);
 
+  // Asegurar que los LEDs de dirección estén apagados al inicio
+  digitalWrite(ledIzquierdaDerecha, LOW);
+  digitalWrite(ledDerechaIzquierda, LOW);
+
   // Configura los botones para seleccionar el lado
   pinMode(botonGenerarIzquierda, INPUT_PULLUP);
   pinMode(botonGenerarDerecha, INPUT_PULLUP);
@@ -161,10 +108,10 @@ void setup() {
   // Configura el pin del joystick
   pinMode(joystickX, INPUT);
 
-  Serial.begin(250000);  // Aumentamos el baud rate para acelerar la comunicación serial
+  Serial.begin(115200);  // Aumentamos el baud rate para acelerar la comunicación serial
 
-  // Configuración inicial del motor
-  setDirection();
+  // Detener el motor al inicio
+  detenerMotor();
 }
 
 void loop() {
@@ -175,12 +122,6 @@ void loop() {
 
   // Controlar el joystick para cambiar el flujo
   actualizarFlujo();
-
-  // Enviar datos por serial cada segundo
-  if (currentMillis - previousMillisSerial >= intervalSerial) {
-    previousMillisSerial = currentMillis;
-    enviarDatosSerial();
-  }
 
   // Llamamos a la función debounce para los botones
   if (debounce(botonGenerarIzquierda)) {
@@ -209,7 +150,7 @@ void loop() {
   }
 
   // Controlar el motor sin delay
-  if (currentMillis - previousMillisMotor >= intervalMotor) {
+  if (motorActivo && currentMillis - previousMillisMotor >= intervalMotor) {
     previousMillisMotor = currentMillis;
     static int stepIndex = 0;
     // Invertimos la lógica de la dirección
@@ -249,6 +190,7 @@ void parseCommand(String command) {
     directionCommand.trim();
     if (directionCommand == "LEFT") {
       direction = 1;
+      motorActivo = true; // Activa el motor
       if (flujoIzquierdaADerecha) {  // Solo cambiar si es necesario
         flujoIzquierdaADerecha = false;
         setDirection();
@@ -256,11 +198,16 @@ void parseCommand(String command) {
       Serial.println("Motor establecido a IZQUIERDA vía comando serial");
     } else if (directionCommand == "RIGHT") {
       direction = 0;
+      motorActivo = true; // Activa el motor
       if (!flujoIzquierdaADerecha) {
         flujoIzquierdaADerecha = true;
         setDirection();
       }
       Serial.println("Motor establecido a DERECHA vía comando serial");
+    } else if (directionCommand == "STOP") {
+      motorActivo = false; // Desactiva el motor
+      detenerMotor(); // Apaga las bobinas del motor
+      Serial.println("Motor detenido vía comando serial");
     } else {
       Serial.println("Comando MOTOR inválido");
     }
@@ -359,22 +306,6 @@ int getBoatTypeFromString(String typeStr) {
   }
 }
 
-// Función para convertir el tipo de barco de entero a cadena
-String getBoatTypeAsString(int boatType) {
-  switch (boatType) {
-    case NO_BOAT:
-      return "No hay barco";
-    case PATRULLA:
-      return "Patrulla";
-    case NORMAL:
-      return "Normal";
-    case PESQUERO:
-      return "Pesquero";
-    default:
-      return "Desconocido";
-  }
-}
-
 // Función para generar barcos según el lado seleccionado mediante botones físicos
 void generarBarco(int boatType, int lado) {
   if (lado == 1) {  // Lado izquierdo
@@ -400,6 +331,8 @@ void generarBarco(int boatType, int lado) {
 
 // Función para actualizar el flujo del canal basado en el joystick
 void actualizarFlujo() {
+  if (!motorActivo) return; // No hacer nada si el motor está detenido
+
   int joystickValue = analogRead(joystickX);  // Lee el valor del eje X
 
   // Cambiar la dirección basada en el valor del joystick
@@ -423,17 +356,24 @@ void controlarParpadeoLEDs(unsigned long currentMillis) {
   if (currentMillis - previousMillisLED >= intervalLED) {
     previousMillisLED = currentMillis;
 
-    // Invertimos la lógica para que los LEDs correspondan al nuevo flujo invertido
-    if (!flujoIzquierdaADerecha) {  // Invertimos la condición
-      digitalWrite(ledIzquierdaDerecha, !digitalRead(ledIzquierdaDerecha));  // LED de izquierda a derecha
-      digitalWrite(ledDerechaIzquierda, LOW);  // Asegurarse de que el otro LED esté apagado
+    if (!motorActivo) {
+      // Si el motor está detenido, parpadean ambos LEDs al mismo tiempo
+      static bool ledState = false;
+      ledState = !ledState;
+      digitalWrite(ledIzquierdaDerecha, ledState);
+      digitalWrite(ledDerechaIzquierda, ledState);
     } else {
-      digitalWrite(ledDerechaIzquierda, !digitalRead(ledDerechaIzquierda));  // LED de derecha a izquierda
-      digitalWrite(ledIzquierdaDerecha, LOW);  // Asegurarse de que el otro LED esté apagado
+      // Si el motor está activo, los LEDs indican la dirección
+      if (flujoIzquierdaADerecha) {
+        digitalWrite(ledDerechaIzquierda, !digitalRead(ledDerechaIzquierda));  // LED de derecha a izquierda
+        digitalWrite(ledIzquierdaDerecha, LOW);  // Asegurarse de que el otro LED esté apagado
+      } else {
+        digitalWrite(ledIzquierdaDerecha, !digitalRead(ledIzquierdaDerecha));  // LED de izquierda a derecha
+        digitalWrite(ledDerechaIzquierda, LOW);  // Asegurarse de que el otro LED esté apagado
+      }
     }
   }
 }
-
 
 // Función para controlar los LEDs en función del estado de los barcos
 void controlarLEDs() {
@@ -448,62 +388,14 @@ void controlarLEDs() {
   digitalWrite(ledDerecha3, rightBoats[0] != NO_BOAT ? HIGH : LOW); // LED físico RIGHT1
 }
 
-// Función para enviar datos por serial cada segundo
-void enviarDatosSerial() {
-  // Construir una cadena con toda la información
-  String mensaje = "";
-
-  // Sentido del canal
-  mensaje += "Sentido: ";
-  mensaje += (flujoIzquierdaADerecha ? "->" : "<-");  // Cambio realizado aquí
-  mensaje += "\n";
-
-  // Cola Izquierda (invertimos el orden para reflejar el orden físico)
-  mensaje += "Cola Izq: ";
-  for (int i = 2; i >= 0; i--) {
-    mensaje += getBoatTypeAbbreviation(leftBoats[i]);
-    if (i > 0) mensaje += ",";
-  }
-  mensaje += "\n";
-
-  // Cola Derecha (invertimos el orden para reflejar el orden físico)
-  mensaje += "Cola Der: ";
-  for (int i = 2; i >= 0; i--) {
-    mensaje += getBoatTypeAbbreviation(rightBoats[i]);
-    if (i > 0) mensaje += ",";
-  }
-  mensaje += "\n";
-
-  // Enviar el mensaje completo
-  Serial.print(mensaje);
-}
-
-// Función para obtener la abreviatura del tipo de barco
-char getBoatTypeAbbreviation(int boatType) {
-  switch (boatType) {
-    case NO_BOAT:
-      return '-';
-    case PATRULLA:
-      return 'P';
-    case NORMAL:
-      return 'N';
-    case PESQUERO:
-      return 'S';  // Usamos 'S' para 'Pesquero'
-    default:
-      return '?';
-  }
-}
-
 // Función para establecer la dirección del motor
 void setDirection() {
   if (direction == 0) {
-    Serial.println("Motor girando: ->");  // Flecha invertida
+    Serial.println("Motor girando: ->");
   } else {
-    Serial.println("Motor girando: <-");  // Flecha invertida
+    Serial.println("Motor girando: <-");
   }
 }
-
-
 
 // Función para activar las bobinas del motor paso a paso
 void setStep(int step) {
@@ -511,6 +403,14 @@ void setStep(int step) {
   digitalWrite(in2, steps[step][1]);
   digitalWrite(in3, steps[step][2]);
   digitalWrite(in4, steps[step][3]);
+}
+
+// Función para detener el motor y apagar las bobinas
+void detenerMotor() {
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
 }
 
 // Función para debouncing de los botones
@@ -523,13 +423,4 @@ bool debounce(int pin) {
     }
   }
   return false;
-}
-
-// Función para contar el número de barcos en un lado
-int countBoats(int boats[]) {
-  int count = 0;
-  for (int i = 0; i < 3; i++) {
-    if (boats[i] != NO_BOAT) count++;
-  }
-  return count;
 }
