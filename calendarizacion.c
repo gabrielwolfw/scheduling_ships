@@ -28,7 +28,6 @@ void agregar_a_cola(SistemaCalendarizacion *sistema, Barco *barco) {
     }
 }
 
-// Función general para obtener el siguiente barco según el algoritmo seleccionado
 Barco *obtener_siguiente_barco(SistemaCalendarizacion *sistema, int direccion_actual, AlgoritmoCalendarizacion algoritmo) {
     switch (algoritmo) {
         case FCFS:
@@ -45,6 +44,7 @@ Barco *obtener_siguiente_barco(SistemaCalendarizacion *sistema, int direccion_ac
             return NULL; // Algoritmo desconocido
     }
 }
+
 
 // FCFS (First-Come, First-Served)
 Barco *obtener_siguiente_barco_fcfs(SistemaCalendarizacion *sistema, int direccion_actual) {
