@@ -1,0 +1,10 @@
+control_flujo=MODO_LETRERO
+longitud_canal=10
+velocidad_normal=1.0
+velocidad_pesquero=2.0
+velocidad_patrulla=3.0
+cantidad_barcos=6
+tiempo_letrero=20
+parametro_w=3
+algoritmo=ROUND_ROBIN
+quantum=5

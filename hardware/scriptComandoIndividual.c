@@ -65,7 +65,9 @@
 #include "../barco.h"
 #include "../calendarizacion.h"
 #include "../CEThreads.h"
+#include "../configuracion.h"
 #include <stdio.h>
+
 
 #define SERIAL_PORT "/dev/ttyACM0" // esto se cambia por el puerto serie donde se conecte el arduino
 #define NUM_BARCOS 5               // Número de barcos para la prueba
@@ -141,11 +143,103 @@ void *chequearSentido(void *arg)
     }
 }
 
-void crear_barco(Barco *barcos, int id, int direccion, TipoBarco tipo, int longitud_canal)
-{
+void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal, ConfiguracionCanal *config, int serial_port) {
+    // Inicializar el barco con los valores según el tipo
     inicializar_barco(&barcos[id], id, direccion, tipo, longitud_canal);
+
+    // Asignar la velocidad según el tipo de barco
+    switch (tipo) {
+        case NORMAL:
+            barcos[id].velocidad = config->velocidad_normal;
+            break;
+        case PESQUERO:
+            barcos[id].velocidad = config->velocidad_pesquero;
+            break;
+        case PATRULLA:
+            barcos[id].velocidad = config->velocidad_patrulla;
+            break;
+        default:
+            printf("Tipo de barco desconocido\n");
+            return;
+    }
+
+    // Determinar la posición en función de la dirección
+    char posicion[10];
+    if (direccion == 0) { // Izquierda
+        snprintf(posicion, sizeof(posicion), "LEFT%d", id + 1);  // Ejemplo: LEFT1
+    } else { // Derecha
+        snprintf(posicion, sizeof(posicion), "RIGHT%d", id + 1);  // Ejemplo: RIGHT1
+    }
+
+    // Determinar el tipo de barco en formato de comando
+    char tipo_barco[10];
+    switch (tipo) {
+        case NORMAL:
+            strcpy(tipo_barco, "NORMAL");
+            break;
+        case PESQUERO:
+            strcpy(tipo_barco, "PESQUERO");
+            break;
+        case PATRULLA:
+            strcpy(tipo_barco, "PATRULLA");
+            break;
+    }
+
+    // Enviar el comando GENERATE
+    char comando[50];
+    snprintf(comando, sizeof(comando), "GENERATE %s %s\n", tipo_barco, posicion);
+    enviar_commando(comando, (void *)serial_port);  // Enviar el comando al puerto serie
+
     mostrar_info_barco(&barcos[id]);
     agregar_barco_al_canal(&barcos[id]);
+}
+
+
+void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitud_canal, ConfiguracionCanal *config, int serial_port) {
+    char opcion;
+
+    while (1) {
+        printf("Ingrese el tipo de barco a generar (n: Normal, p: Pesquero, t: Patrulla, q: Salir y procesar): ");
+        scanf(" %c", &opcion);
+
+        if (opcion == 'q') {
+            break; // Salir del bucle y proceder a procesar los barcos
+        }
+
+        if (*contador_barcos >= NUM_BARCOS) {
+            printf("Número máximo de barcos alcanzado.\n");
+            break;
+        }
+
+        TipoBarco tipo;
+        int direccion;
+
+        // Solicitar la dirección del barco
+        printf("Seleccione el océano de origen (0: Izquierda, 1: Derecha): ");
+        int oceano;
+        scanf(" %d", &oceano);
+
+        direccion = (oceano == 0) ? 0 : 1;  // Izquierda a derecha o derecha a izquierda
+        // Asignar el tipo de barco según la entrada del usuario
+        switch (opcion) {
+            case 'n':
+                tipo = NORMAL;
+                break;
+            case 'p':
+                tipo = PESQUERO;
+                break;
+            case 't':
+                tipo = PATRULLA;
+                break;
+            default:
+                printf("Opción no válida.\n");
+                continue;
+        }
+
+        // Crear el barco y agregarlo al sistema, pasando el puerto serie
+        crear_barco(barcos, *contador_barcos, direccion, tipo, longitud_canal, config, serial_port);
+        (*contador_barcos)++;  // Incrementar el contador de barcos
+    }
 }
 
 int main()
@@ -214,54 +308,33 @@ int main()
     sleep(2);
 
     // Configuración inicial del canal
-    int tiempo_letrero = 5;     // Tiempo en segundos para cambiar el letrero
-    int longitud_canal = 10;     // Longitud del canal en unidades
-    int parametro_w = 3;         // Número de barcos por dirección en modo equidad
-    AlgoritmoCalendarizacion algoritmo = ROUND_ROBIN;  // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
-    ModoControlFlujo modo = MODO_TICO;
-    int quantum = 5;  // Quantum para Round Robin
+    ConfiguracionCanal config;
+    leer_configuracion("config_canal.txt", &config);  // Leer el archivo de configuración
 
-    // Inicialización del canal
-    iniciar_canal(tiempo_letrero, longitud_canal, modo, parametro_w, algoritmo);
-    sistema_cal.quantum = quantum; // Establecer el quantum para Round Robin
+    // Obtener el modo de control de flujo y el algoritmo de calendarización
+    ModoControlFlujo modo = obtener_modo_control_flujo(config.control_flujo);
+    AlgoritmoCalendarizacion algoritmo = obtener_algoritmo_calendarizacion(config.algoritmo);
+
+    // Inicializar el canal con los parámetros del archivo de configuración
+    iniciar_canal(config.tiempo_letrero, config.longitud_canal, modo, config.parametro_w, algoritmo);
+    sistema_cal.quantum = config.quantum;  // Establecer el quantum para Round Robin
 
     // Mostrar configuración del canal
     printf("Configuración del canal:\n");
-    printf("- Tiempo de letrero: %d segundos\n", tiempo_letrero);
-    printf("- Longitud del canal: %d unidades\n", longitud_canal);
-    printf("- Algoritmo de calendarización: %s\n",
-           algoritmo == ROUND_ROBIN ? "ROUND_ROBIN" : algoritmo == FCFS      ? "FCFS"
-                                                  : algoritmo == SJF         ? "SJF"
-                                                  : algoritmo == PRIORIDAD   ? "PRIORIDAD"
-                                                  : algoritmo == TIEMPO_REAL ? "TIEMPO_REAL"
-                                                                             : "DESCONOCIDO");
-    printf("- Quantum (para Round Robin): %d segundos\n", quantum);
+    printf("- Modo de control de flujo: %s\n", config.control_flujo);
+    printf("- Longitud del canal: %d unidades\n", config.longitud_canal);
+    printf("- Velocidad barco Normal: %.2f\n", config.velocidad_normal);
+    printf("- Velocidad barco Pesquero: %.2f\n", config.velocidad_pesquero);
+    printf("- Velocidad barco Patrulla: %.2f\n", config.velocidad_patrulla);
+    printf("- Algoritmo de calendarización: %s\n", config.algoritmo);
+    printf("- Quantum (si aplica): %d\n", config.quantum);
 
     Barco barcos[NUM_BARCOS];
+    int contador_barcos = 0;  // Inicializar contador de barcos
     enviar_commando("MOTOR STOP\n", (void*)serial_port);
     
     printf("\nAgregando barcos a la cola...\n");
-    
-    // Barcos de prueba con diferentes tipos
-    crear_barco(barcos, 0, 1, NORMAL, longitud_canal); // Barco 0, dirección derecha
-    enviar_commando("GENERATE NORMAL RIGHT1\n", (void *)serial_port);
-    leds[3] = 0;
-
-    crear_barco(barcos, 1, 1, PESQUERO, longitud_canal);  // Barco 1, dirección derecha
-    enviar_commando("GENERATE PESQUERO RIGHT2\n", (void *)serial_port);
-    leds[4] = 1;
-
-    crear_barco(barcos, 2, 0, PATRULLA, longitud_canal);  // Barco 2, dirección izquierda
-    enviar_commando("GENERATE PATRULLA LEFT1\n", (void *)serial_port);
-    leds[0] = 2;
-
-    crear_barco(barcos, 3, 0, NORMAL, longitud_canal);    // Barco 3, dirección izquierda
-    enviar_commando("GENERATE NORMAL LEFT2\n", (void *)serial_port);
-    leds[1] = 3;
-
-    crear_barco(barcos, 4, 0, NORMAL, longitud_canal);    // Barco 4, dirección izquierda
-    enviar_commando("GENERATE NORMAL LEFT3\n", (void *)serial_port);
-    leds[2] = 4;
+    agregar_barcos_por_teclado(barcos, &contador_barcos, config.longitud_canal, &config, serial_port);
 
     
 
