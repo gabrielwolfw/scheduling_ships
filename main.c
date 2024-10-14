@@ -10,7 +10,6 @@ void *chequear_colas()
 {
     while (1)
     {
-        printf("%s \n", "Entrando a chequear cola");
         int *lista_cruzados = obtener_cruzados();
  
         if (lista_cruzados != NULL)

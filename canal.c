@@ -153,9 +153,10 @@ void* cruzar_canal_equidad(void* arg) {
 
 void* cruzar_canal_tico(void* arg) {
     Barco* barco = (Barco*) arg;
-
+    
     CEmutex_lock(&canal_mutex);
-
+    sentido_actual = barco->direccion;
+    CEthread_sleep(0.5);
     Barco* siguiente = obtener_siguiente_barco(&sistema_cal, sentido_actual, algoritmo_actual);
     if (siguiente != barco) {
         agregar_a_cola(&sistema_cal, barco);
@@ -170,7 +171,7 @@ void* cruzar_canal_tico(void* arg) {
            barco->direccion == 0 ? "izquierda" : "derecha",
            barco->direccion == 0 ? "derecha" : "izquierda",
            tiempo_total_cruce);
-
+    
     CEthread_sleep(tiempo_total_cruce);
     registrar_cruce(barco->id);
     printf("Barco %d ha cruzado.\n", barco->id);

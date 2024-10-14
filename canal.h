@@ -25,6 +25,7 @@ extern CEmutex_t canal_mutex;
 extern CEmutex_t letrero_mutex;
 extern SistemaCalendarizacion sistema_cal; // Sistema de calendarización
 
+
 extern bool canal_activo;  // Agregar esto para controlar el estado del canal
 
 // Funciones para el manejo del canal
