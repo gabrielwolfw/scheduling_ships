@@ -143,7 +143,7 @@ void *chequearSentido(void *arg)
     }
 }
 
-void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal, ConfiguracionCanal *config, int serial_port) {
+void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longitud_canal, ConfiguracionCanal *config) {
     // Inicializar el barco con los valores según el tipo
     inicializar_barco(&barcos[id], id, direccion, tipo, longitud_canal);
 
@@ -163,39 +163,12 @@ void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longi
             return;
     }
 
-    // Determinar la posición en función de la dirección
-    char posicion[10];
-    if (direccion == 0) { // Izquierda
-        snprintf(posicion, sizeof(posicion), "LEFT%d", id + 1);  // Ejemplo: LEFT1
-    } else { // Derecha
-        snprintf(posicion, sizeof(posicion), "RIGHT%d", id + 1);  // Ejemplo: RIGHT1
-    }
-
-    // Determinar el tipo de barco en formato de comando
-    char tipo_barco[10];
-    switch (tipo) {
-        case NORMAL:
-            strcpy(tipo_barco, "NORMAL");
-            break;
-        case PESQUERO:
-            strcpy(tipo_barco, "PESQUERO");
-            break;
-        case PATRULLA:
-            strcpy(tipo_barco, "PATRULLA");
-            break;
-    }
-
-    // Enviar el comando GENERATE
-    char comando[50];
-    snprintf(comando, sizeof(comando), "GENERATE %s %s\n", tipo_barco, posicion);
-    enviar_commando(comando, (void *)serial_port);  // Enviar el comando al puerto serie
-
+    // Mostrar la información del barco y agregarlo al canal
     mostrar_info_barco(&barcos[id]);
     agregar_barco_al_canal(&barcos[id]);
 }
 
-
-void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitud_canal, ConfiguracionCanal *config, int serial_port) {
+void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitud_canal, ConfiguracionCanal *config, int port, int* leds) {
     char opcion;
 
     while (1) {
@@ -220,25 +193,54 @@ void agregar_barcos_por_teclado(Barco* barcos, int* contador_barcos, int longitu
         scanf(" %d", &oceano);
 
         direccion = (oceano == 0) ? 0 : 1;  // Izquierda a derecha o derecha a izquierda
+        char* tipo_valor;
+
         // Asignar el tipo de barco según la entrada del usuario
         switch (opcion) {
             case 'n':
                 tipo = NORMAL;
+                tipo_valor = "NORMAL";
                 break;
             case 'p':
                 tipo = PESQUERO;
+                tipo_valor = "PESQUERO";
                 break;
             case 't':
                 tipo = PATRULLA;
+                tipo_valor = "PATRULLA";
                 break;
             default:
                 printf("Opción no válida.\n");
                 continue;
         }
 
-        // Crear el barco y agregarlo al sistema, pasando el puerto serie
-        crear_barco(barcos, *contador_barcos, direccion, tipo, longitud_canal, config, serial_port);
+        // Crear el barco y agregarlo al sistema
+        crear_barco(barcos, *contador_barcos, direccion, tipo, longitud_canal, config);
         (*contador_barcos)++;  // Incrementar el contador de barcos
+        
+        // Determinar la posición del LED según la dirección
+        int posicion_led;
+        if (direccion == 0) { // Izquierda
+            posicion_led = *contador_barcos - 1;  // Asignar de 0 a 2 (LEFT1, LEFT2, LEFT3 corresponden a leds 0, 1, 2)
+        } else {  // Derecha
+            posicion_led = (*contador_barcos - 1) + 3;  // Asignar de 3 a 5 (RIGHT1, RIGHT2, RIGHT3 corresponden a leds 3, 4, 5)
+        }
+
+        // Asegurarnos de que la posición del LED esté dentro del rango válido
+        if (posicion_led < 0 || posicion_led > 5) {
+            printf("Error: Posición de LED fuera de rango.\n");
+            continue;
+        }
+
+        // Construir el comando GENERATE
+        char buff[25];
+        snprintf(buff, 25, "GENERATE %s %s%d", tipo_valor, direccion == 0 ? "LEFT" : "RIGHT", posicion_led + 1);
+        printf("Comando generado: %s \n", buff);
+        enviar_commando(buff, (void *)port);
+
+        // Asignar el ID del barco a la posición del LED
+        leds[posicion_led] = *contador_barcos - 1;
+        printf("ID del barco %d asignado al LED %d\n", *contador_barcos - 1, posicion_led);
     }
 }
 
@@ -309,7 +311,7 @@ int main()
 
     // Configuración inicial del canal
     ConfiguracionCanal config;
-    leer_configuracion("config_canal.txt", &config);  // Leer el archivo de configuración
+    leer_configuracion("../config_canal.txt", &config);  // Leer el archivo de configuración
 
     // Obtener el modo de control de flujo y el algoritmo de calendarización
     ModoControlFlujo modo = obtener_modo_control_flujo(config.control_flujo);
@@ -332,9 +334,10 @@ int main()
     Barco barcos[NUM_BARCOS];
     int contador_barcos = 0;  // Inicializar contador de barcos
     enviar_commando("MOTOR STOP\n", (void*)serial_port);
+    int leds[6] = {-1, -1, -1, -1, -1, -1};  // Inicializar todos los LEDs como -1 (sin barco asignado)
     
     printf("\nAgregando barcos a la cola...\n");
-    agregar_barcos_por_teclado(barcos, &contador_barcos, config.longitud_canal, &config, serial_port);
+    agregar_barcos_por_teclado(barcos, &contador_barcos, config.longitud_canal, &config, serial_port, leds);
 
     
 
