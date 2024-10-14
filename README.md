@@ -43,5 +43,6 @@ Ejemplo:
 
 ### 4. Compilación
     make
-    make run
+    ./ejecutable
+
 
