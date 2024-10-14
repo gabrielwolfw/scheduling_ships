@@ -19,18 +19,17 @@ AlgoritmoCalendarizacion algoritmo_actual = FCFS; // Algoritmo de calendarizaci√
 bool canal_activo = true;      // Estado del canal
 bool canal_ocupado = false;    // Estado del canal
 
-
-int barcos_cruzados[6] = {9,9,9,9,9,9};
 int indice_cruce = 0;
+int* barcos_cruzados;
 
-void registrar_cruce(int id){
-    barcos_cruzados[indice_cruce] = id;
-    indice_cruce++;
+int *obtener_cruzados(){
+    return barcos_cruzados;
 }
 
-int* obtener_cruzados(){
-    printf("Tamano array: %d", sizeof(barcos_cruzados)/sizeof(barcos_cruzados[0]));
-    return barcos_cruzados;
+void registrar_cruce(int id){
+    printf("Registrando el cruce de: %d \n", id);
+    barcos_cruzados[indice_cruce] = id;
+    indice_cruce++;
 }
 
 void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoControlFlujo modo, int parametro_w_definido, AlgoritmoCalendarizacion algoritmo) {
@@ -44,6 +43,10 @@ void iniciar_canal(int tiempo_letrero_definido, int longitud_definida, ModoContr
     CEmutex_init(&canal_mutex);
     CEmutex_init(&letrero_mutex);
     inicializar_sistema(&sistema_cal);
+    barcos_cruzados = malloc(sizeof(int) * 6);
+    for(int i=0; i<6; i++){
+        barcos_cruzados[i] = 9;
+    }
 }
 
 void* cruzar_canal_letrero(void* arg) {
@@ -93,6 +96,7 @@ void* cruzar_canal_letrero(void* arg) {
 
         if (barco->tiempo_restante <= 0) {
             canal_ocupado = false;
+            registrar_cruce(barco->id);
             printf("Barco %d ha cruzado completamente.\n", barco->id);
         } else if (algoritmo_actual == ROUND_ROBIN) {
             canal_ocupado = false;
@@ -133,12 +137,13 @@ void* cruzar_canal_equidad(void* arg) {
            tiempo_total_cruce);
 
     CEthread_sleep(tiempo_total_cruce);
+    registrar_cruce(barco->id);
     printf("Barco %d ha cruzado.\n", barco->id);
 
     barcos_pasados++;
     if (barcos_pasados >= parametro_w) {
         sentido_actual = 1 - sentido_actual;
-        
+        CEthread_sleep(0.5);
         barcos_pasados = 0;
         CEthread_sleep(1);
         printf("Cambiando el sentido del canal a %s.\n",
@@ -171,6 +176,7 @@ void* cruzar_canal_tico(void* arg) {
            tiempo_total_cruce);
     
     CEthread_sleep(tiempo_total_cruce);
+    registrar_cruce(barco->id);
     printf("Barco %d ha cruzado.\n", barco->id);
 
     CEmutex_unlock(&canal_mutex);
@@ -199,6 +205,7 @@ void* cambiar_sentido(void* arg) {
         CEmutex_lock(&canal_mutex);
         if (!canal_ocupado) {
             sentido_actual = 1 - sentido_actual;
+            CEthread_sleep(0.5);
             printf("Cambiando el sentido del canal a %s.\n",
                    sentido_actual == 0 ? "izquierda a derecha" : "derecha a izquierda");
         }

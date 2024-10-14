@@ -38,5 +38,7 @@ void agregar_barco_al_canal(Barco* barco);
 void* cruzar_canal_letrero(void* arg);
 void* cruzar_canal_equidad(void* arg);
 void* cruzar_canal_tico(void* arg);
+int *obtener_cruzados();
+void registrar_cruce(int id);
 
 #endif // CANAL_H
