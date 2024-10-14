@@ -12,7 +12,7 @@ void *chequear_colas()
     {
         printf("%s \n", "Entrando a chequear cola");
         int *lista_cruzados = obtener_cruzados();
-
+ 
         if (lista_cruzados != NULL)
         {
             for (int i = 0; i < 6; i++)
@@ -43,7 +43,7 @@ int main()
     AlgoritmoCalendarizacion algoritmo = ROUND_ROBIN; // Cambiar a ROUND_ROBIN, SJF, etc. si es necesario
     ModoControlFlujo modo = MODO_LETRERO;
     int quantum = 5; // Quantum para Round Robin
-    int *array_barcos_cruzados = malloc(sizeof(int) * 6);
+
 
     // Inicialización del canal
     iniciar_canal(tiempo_letrero, longitud_canal, modo, parametro_w, algoritmo);

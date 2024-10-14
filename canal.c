@@ -23,12 +23,10 @@ int indice_cruce = 0;
 int* barcos_cruzados;
 
 int *obtener_cruzados(){
-    printf("%s \n", "Entrando a obtener cruzados");
     return barcos_cruzados;
 }
 
 void registrar_cruce(int id){
-    printf("%s \n", "Entrando a registrar cruce");
     printf("Registrando el cruce de: %d \n", id);
     barcos_cruzados[indice_cruce] = id;
     indice_cruce++;
