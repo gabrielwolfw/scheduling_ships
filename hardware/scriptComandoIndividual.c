@@ -83,6 +83,8 @@ void *enviar_commando(char *comando, void *arg)
 }
 
 int leds[6] = {9, 9, 9, 9, 9, 9};
+int pos_derecha = 3;
+int pos_izquierda = 0;
 
 void *chequear_colas(void *arg)
 {
@@ -182,11 +184,13 @@ void crear_barco(Barco* barcos, int id, int direccion, TipoBarco tipo, int longi
     // Determinar el comando y la posición del LED
     char comando[50];
     if (direccion == 0) { // Izquierda
-        snprintf(comando, sizeof(comando), "GENERATE %s LEFT%d\n", tipo_barco, id + 1);
-        leds[id] = id; // Asignar el ID del barco a la posición del LED correspondiente
+        snprintf(comando, sizeof(comando), "GENERATE %s LEFT%d\n", tipo_barco, pos_izquierda);
+        leds[pos_izquierda] = id; // Asignar el ID del barco a la posición del LED correspondiente
+        pos_izquierda++;
     } else { // Derecha
-        snprintf(comando, sizeof(comando), "GENERATE %s RIGHT%d\n", tipo_barco, id + 1);
-        leds[id + 3] = id; // Asignar el ID del barco a la posición del LED correspondiente
+        snprintf(comando, sizeof(comando), "GENERATE %s RIGHT%d\n", tipo_barco, pos_derecha);
+        leds[pos_derecha] = id; // Asignar el ID del barco a la posición del LED correspondiente
+        pos_derecha++;
     }
 
     // Enviar el comando GENERATE
